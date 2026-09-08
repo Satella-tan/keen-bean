@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keenan Finder — Client-Side Search Engine Testbed</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --heading: #f0f6fc;
+      --accent: #58a6ff;
+      --accent-green: #3fb950;
+      --accent-purple: #bc8cff;
+      --accent-orange: #d29922;
+      --accent-red: #f85149;
+      --font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3 {
+      color: var(--heading);
+      font-weight: 600;
+    }
+
+    header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-size: 20px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: normal;
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .badge.active {
+      background: rgba(63, 185, 80, 0.15);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .badge.warning {
+      background: rgba(210, 153, 34, 0.15);
+      border-color: var(--accent-orange);
+      color: var(--accent-orange);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+    }
+    .status-row:last-child {
+      border-bottom: none;
+    }
+    .status-label {
+      color: var(--text-muted);
+    }
+    .status-val {
+      color: var(--heading);
+      font-weight: 500;
+    }
+
+    .progress-bar-container {
+      margin-top: 10px;
+      background: #21262d;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.2s;
+    }
+
+    .controls-panel {
+      margin-bottom: 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      color: var(--heading);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+    }
+
+    button {
+      background: #238636;
+      color: white;
+      border: 1px solid rgba(240, 246, 252, 0.1);
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover:not(:disabled) {
+      background: #2ea043;
+    }
+    button:disabled {
+      background: #21262d;
+      color: var(--text-muted);
+      cursor: not-allowed;
+      border-color: var(--border);
+    }
+
+    .secondary-btn {
+      background: #21262d;
+      color: var(--heading);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .secondary-btn:hover:not(:disabled) {
+      background: #30363d;
+    }
+
+    .options-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .mode-selector {
+      display: inline-flex;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+    }
+    .mode-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .mode-btn.active {
+      background: #21262d;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .metrics-bar {
+      display: flex;
+      gap: 20px;
+      padding: 10px 14px;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 20px;
+      font-size: 12px;
+    }
+    .metric-item {
+      display: flex;
+      gap: 6px;
+    }
+    .metric-value {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .results-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .result-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      transition: border-color 0.15s;
+    }
+    .result-card:hover {
+      border-color: #58a6ff66;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .result-rank {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 13px;
+    }
+
+    .result-scores {
+      display: flex;
+      gap: 12px;
+      color: var(--text-muted);
+    }
+    .score-total {
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .result-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .result-meta a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .result-meta a:hover {
+      text-decoration: underline;
+    }
+
+    .result-text {
+      color: var(--heading);
+      font-size: 13px;
+      line-height: 1.6;
+      background: #0d1117;
+      padding: 10px 12px;
+      border-radius: 4px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .benchmark-queries {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .benchmark-pill {
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .benchmark-pill:hover {
+      background: #30363d;
+      color: var(--heading);
+    }
+
+    select {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--heading);
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+  </style>
+  <script type="module" crossorigin src="/assets/index-CVAydQ5Z.js"></script>
+</head>
+<body>
+  <header>
+    <h1>
+      Keenan Finder — Engine Testbed
+      <span id="engineBadge" class="badge">Initializing...</span>
+      <span id="deviceBadge" class="badge">Detecting hardware...</span>
+    </h1>
+    <div style="color: var(--text-muted); font-size: 12px;">
+      100% Client-Side In-Browser Vector & BM25 Search over INT8 Quantized Transcripts
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- Corpus Panel -->
+    <div class="card">
+      <div class="card-title">
+        <span>Corpus Status</span>
+        <span id="corpusStatusBadge" class="badge">Loading...</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Items Loaded:</span>
+        <span id="numItemsVal" class="status-val">—</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Embedding Dimensions:</span>
+        <span id="dimsVal" class="status-val">—</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Load / Parse Latency:</span>
+        <span id="corpusLatencyVal" class="status-val">—</span>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
+        <label class="secondary-btn" style="cursor: pointer;">
+          Load Custom .bin
+          <input type="file" id="customCorpusInput" accept=".bin" style="display: none;" />
+        </label>
+        <span id="customFileName" style="color: var(--text-muted); font-size: 11px;">Default: /int8.bin</span>
+      </div>
+    </div>
+
+    <!-- Embedding Model Panel -->
+    <div class="card">
+      <div class="card-title">
+        <span>Browser Neural Engine</span>
+        <span id="modelStatusBadge" class="badge">Waiting...</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Active Model:</span>
+        <select id="modelSelector">
+          <option value="Xenova/bge-small-en-v1.5" selected>BAAI/bge-small-en-v1.5 (Default Corpus)</option>
+          <option value="mixedbread-ai/mxbai-embed-xsmall-v1">mxbai-embed-xsmall-v1</option>
+        </select>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Device Backend:</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <select id="deviceSelector">
+            <option value="wasm" selected>WASM / CPU (Fast & Exact, ~12ms)</option>
+            <option value="webgpu">WebGPU (FP32)</option>
+          </select>
+          <span id="activeDeviceVal" class="status-val">—</span>
+        </div>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Model Init Latency:</span>
+        <span id="modelInitLatencyVal" class="status-val">—</span>
+      </div>
+      <div id="progressContainer" class="progress-bar-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="modelStatusText" style="margin-top: 6px; font-size: 11px; color: var(--text-muted);">
+        Waiting for model initialization...
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Controls -->
+  <div class="controls-panel">
+    <div class="search-row">
+      <input type="text" id="queryInput" placeholder="Enter search query (e.g. 'how to manage big eating crashouts', 'forearm training')..." autofocus />
+      <button id="searchBtn" disabled>Search</button>
+    </div>
+
+    <div class="options-row">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span>Mode:</span>
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="hybrid">Hybrid (70/30)</button>
+          <button class="mode-btn" data-mode="semantic">Semantic Only</button>
+          <button class="mode-btn" data-mode="keyword">Keyword Only (BM25)</button>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span>Top K:</span>
+        <select id="topKSelector">
+          <option value="3">3</option>
+          <option value="5" selected>5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Quick Benchmark Queries from eval_queries.txt -->
+    <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Benchmark Eval Queries (from eval_queries.txt):</span>
+        <select id="allEvalQueriesSelect" style="max-width: 320px;">
+          <option value="">Select benchmark query (100 total)...</option>
+        </select>
+      </div>
+      <div id="quickPills" class="benchmark-queries"></div>
+    </div>
+  </div>
+
+  <!-- Metrics Bar -->
+  <div id="metricsBar" class="metrics-bar" style="display: none;">
+    <div class="metric-item">
+      <span class="status-label">Embedding:</span>
+      <span id="metricEmbed" class="metric-value">0 ms</span>
+    </div>
+    <div class="metric-item">
+      <span class="status-label">Search (INT8 + BM25):</span>
+      <span id="metricSearch" class="metric-value">0 ms</span>
+    </div>
+    <div class="metric-item">
+      <span class="status-label">Total Time:</span>
+      <span id="metricTotal" class="metric-value">0 ms</span>
+    </div>
+    <div class="metric-item">
+      <span class="status-label">Query:</span>
+      <span id="metricQuery" style="color: var(--heading);">—</span>
+    </div>
+  </div>
+
+  <!-- Results List -->
+  <div id="resultsContainer" class="results-container">
+    <div class="empty-state">
+      Ready for search. Load status above will indicate when corpus and model are prepared.
+    </div>
+  </div>
+
+</body>
+</html>
