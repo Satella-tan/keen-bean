@@ -8,11 +8,8 @@ const corpusStatusBadge = document.getElementById('corpusStatusBadge') as HTMLEl
 const numItemsVal = document.getElementById('numItemsVal') as HTMLElement;
 const dimsVal = document.getElementById('dimsVal') as HTMLElement;
 const corpusLatencyVal = document.getElementById('corpusLatencyVal') as HTMLElement;
-const customCorpusInput = document.getElementById('customCorpusInput') as HTMLInputElement;
-const customFileName = document.getElementById('customFileName') as HTMLElement;
 
 const modelStatusBadge = document.getElementById('modelStatusBadge') as HTMLElement;
-const modelSelector = document.getElementById('modelSelector') as HTMLSelectElement;
 const deviceSelector = document.getElementById('deviceSelector') as HTMLSelectElement;
 const activeDeviceVal = document.getElementById('activeDeviceVal') as HTMLElement;
 const modelInitLatencyVal = document.getElementById('modelInitLatencyVal') as HTMLElement;
@@ -22,7 +19,6 @@ const modelStatusText = document.getElementById('modelStatusText') as HTMLElemen
 
 const queryInput = document.getElementById('queryInput') as HTMLInputElement;
 const searchBtn = document.getElementById('searchBtn') as HTMLButtonElement;
-const topKSelector = document.getElementById('topKSelector') as HTMLSelectElement;
 const modeButtons = document.querySelectorAll<HTMLButtonElement>('.mode-btn');
 
 const metricsBar = document.getElementById('metricsBar') as HTMLElement;
@@ -32,14 +28,22 @@ const metricTotal = document.getElementById('metricTotal') as HTMLElement;
 const metricQuery = document.getElementById('metricQuery') as HTMLElement;
 
 const resultsContainer = document.getElementById('resultsContainer') as HTMLElement;
-const quickPills = document.getElementById('quickPills') as HTMLElement;
-const allEvalQueriesSelect = document.getElementById('allEvalQueriesSelect') as HTMLSelectElement;
+const paginationContainer = document.getElementById('paginationContainer') as HTMLElement;
+const loadMoreBtn = document.getElementById('loadMoreBtn') as HTMLButtonElement;
+const resultsCountInfo = document.getElementById('resultsCountInfo') as HTMLElement;
+const scrollSentinel = document.getElementById('scrollSentinel') as HTMLElement;
+
+// Model & Config
+const DEFAULT_MODEL_ID = 'Xenova/bge-small-en-v1.5';
+const PAGE_SIZE = 5;
 
 // State
 let corpusReady = false;
 let modelReady = false;
 let currentMode: SearchMode = 'hybrid';
 let searchInProgress = false;
+let allResults: SearchResult[] = [];
+let currentRenderedCount = 0;
 
 // Create Web Worker
 const worker = new Worker(new URL('./worker/search-worker.ts', import.meta.url), {
@@ -145,11 +149,116 @@ worker.addEventListener('message', (event: MessageEvent<WorkerResponse>) => {
   }
 });
 
+// Sentence splitting utility
+function splitSentences(text: string): string[] {
+  if (text.includes('\n')) {
+    return text.split('\n').map((s) => s.trim()).filter(Boolean);
+  }
+  const sentences = text.split(/(?<=[.?!])\s+/).map((s) => s.trim()).filter(Boolean);
+  return sentences.length > 0 ? sentences : [text.trim()];
+}
+
+function renderContext(r: SearchResult): string {
+  if (!r.parentChunks || r.parentChunks.length === 0) {
+    const sentences = splitSentences(r.matchedText);
+    return sentences
+      .map((s) => `<div class="match-line"><span class="match-indicator">&gt;&gt;</span> <span class="match-text">${escapeHtml(s)}</span></div>`)
+      .join('');
+  }
+
+  return r.parentChunks
+    .map((chunk) => {
+      const sentences = splitSentences(chunk.text);
+      if (chunk.isMatch) {
+        return sentences
+          .map((s) => `<div class="match-line"><span class="match-indicator">&gt;&gt;</span> <span class="match-text">${escapeHtml(s)}</span></div>`)
+          .join('');
+      } else {
+        return sentences
+          .map((s) => `<div class="context-sentence">${escapeHtml(s)}</div>`)
+          .join('');
+      }
+    })
+    .join('');
+}
+
+function renderResultCard(r: SearchResult): HTMLElement {
+  const card = document.createElement('div');
+  card.className = 'result-card';
+
+  const youtubeUrl = `https://youtu.be/${r.videoId}?t=${r.start}`;
+  const timeDisplay = `${formatSeconds(r.start)} - ${formatSeconds(r.end)}`;
+  const thumbUrl = `https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg`;
+  const displayTitle = r.videoTitle || r.videoId;
+  const sceneBadge = r.scene ? `<span class="badge">${escapeHtml(r.scene)}</span>` : '';
+
+  card.innerHTML = `
+    <div class="result-top-bar">
+      <div class="result-title-group">
+        <span class="result-rank">#${r.rank}</span>
+        <span class="result-video-title" title="${escapeHtml(displayTitle)}">${escapeHtml(displayTitle)}</span>
+        ${sceneBadge}
+      </div>
+      <div class="result-scores">
+        <span>Score: <strong class="score-total">${r.score.toFixed(4)}</strong></span>
+        <span>(${r.semanticScore.toFixed(3)} sem / ${r.keywordScore.toFixed(3)} kw)</span>
+      </div>
+    </div>
+    <div class="result-body">
+      <a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer" class="yt-box" title="Watch on YouTube (${timeDisplay})">
+        <div class="yt-thumb-container">
+          <img src="${thumbUrl}" alt="${escapeHtml(displayTitle)}" class="yt-thumb-img" loading="lazy" onerror="this.style.display='none'" />
+          <div class="yt-play-overlay">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+          </div>
+          <div class="yt-time-badge">${timeDisplay}</div>
+        </div>
+        <div class="yt-caption">
+          <span>Watch @ ${formatSeconds(r.start)}</span>
+          <span>↗</span>
+        </div>
+      </a>
+      <div class="transcript-container">
+        ${renderContext(r)}
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+
+function renderNextBatch(): void {
+  if (currentRenderedCount >= allResults.length) return;
+
+  const nextCount = Math.min(currentRenderedCount + PAGE_SIZE, allResults.length);
+  for (let i = currentRenderedCount; i < nextCount; i++) {
+    const card = renderResultCard(allResults[i]);
+    resultsContainer.appendChild(card);
+  }
+  currentRenderedCount = nextCount;
+
+  resultsCountInfo.textContent = `Showing ${currentRenderedCount} of ${allResults.length} results`;
+
+  if (currentRenderedCount >= allResults.length) {
+    loadMoreBtn.style.display = 'none';
+    resultsCountInfo.textContent = `Showing all ${allResults.length} results`;
+  } else {
+    loadMoreBtn.style.display = 'block';
+    const remaining = allResults.length - currentRenderedCount;
+    loadMoreBtn.textContent = `Load 5 More Results (${remaining} remaining)`;
+  }
+}
+
 // Render results
 function renderResults(results: SearchResult[]): void {
+  allResults = results;
+  currentRenderedCount = 0;
   resultsContainer.innerHTML = '';
 
   if (results.length === 0) {
+    paginationContainer.style.display = 'none';
     resultsContainer.innerHTML = `
       <div class="empty-state">
         No results matched your query.
@@ -158,32 +267,8 @@ function renderResults(results: SearchResult[]): void {
     return;
   }
 
-  for (const r of results) {
-    const card = document.createElement('div');
-    card.className = 'result-card';
-
-    const youtubeUrl = `https://youtu.be/${r.videoId}?t=${r.start}`;
-    const timeDisplay = `${formatSeconds(r.start)} - ${formatSeconds(r.end)}`;
-
-    card.innerHTML = `
-      <div class="result-header">
-        <span class="result-rank">Rank #${r.rank}</span>
-        <div class="result-scores">
-          <span>Combined: <span class="score-total">${r.score.toFixed(4)}</span></span>
-          <span>Sem: ${(r.semanticScore).toFixed(4)}</span>
-          <span>KW: ${(r.keywordScore).toFixed(4)}</span>
-        </div>
-      </div>
-      <div class="result-meta">
-        <span><strong>Scene:</strong> ${escapeHtml(r.parentId)}</span>
-        <span><strong>Time:</strong> <a href="${youtubeUrl}" target="_blank" rel="noopener noreferrer">${timeDisplay} ↗</a></span>
-        <span><strong>Child ID:</strong> ${escapeHtml(r.childId)}</span>
-      </div>
-      <div class="result-text">${escapeHtml(r.matchedText)}</div>
-    `;
-
-    resultsContainer.appendChild(card);
-  }
+  paginationContainer.style.display = 'flex';
+  renderNextBatch();
 }
 
 function escapeHtml(str: string): string {
@@ -213,15 +298,13 @@ function executeSearch(): void {
   searchBtn.disabled = true;
   searchBtn.textContent = 'Searching...';
 
-  const topK = parseInt(topKSelector.value, 10) || 5;
-
   postToWorker({
     type: 'SEARCH',
     id: String(Date.now()),
     query,
     options: {
       mode: currentMode,
-      topK,
+      topK: 50,
       semanticWeight: 0.70,
       keywordWeight: 0.30,
     },
@@ -248,19 +331,6 @@ modeButtons.forEach((btn) => {
   });
 });
 
-// Model selector change
-modelSelector.addEventListener('change', () => {
-  modelReady = false;
-  modelStatusBadge.textContent = 'Loading...';
-  modelStatusBadge.className = 'badge warning';
-  updateEngineStatus();
-  postToWorker({
-    type: 'INIT_MODEL',
-    modelId: modelSelector.value,
-    devicePreference: deviceSelector.value as 'auto' | 'webgpu' | 'wasm',
-  });
-});
-
 // Device selector change
 deviceSelector.addEventListener('change', () => {
   modelReady = false;
@@ -269,78 +339,28 @@ deviceSelector.addEventListener('change', () => {
   updateEngineStatus();
   postToWorker({
     type: 'INIT_MODEL',
-    modelId: modelSelector.value,
+    modelId: DEFAULT_MODEL_ID,
     devicePreference: deviceSelector.value as 'auto' | 'webgpu' | 'wasm',
   });
 });
 
-// Custom corpus file upload
-customCorpusInput.addEventListener('change', async (e) => {
-  const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (!file) return;
-
-  customFileName.textContent = file.name;
-  corpusReady = false;
-  corpusStatusBadge.textContent = 'Parsing...';
-  corpusStatusBadge.className = 'badge warning';
-  updateEngineStatus();
-
-  try {
-    const buffer = await file.arrayBuffer();
-    postToWorker({
-      type: 'LOAD_CORPUS',
-      buffer,
-    });
-  } catch (err) {
-    alert(`Failed to read file: ${err}`);
-  }
-});
-
-// Load Benchmark Queries from eval_queries.txt
-async function loadBenchmarkQueries(): Promise<void> {
-  try {
-    const resp = await fetch('/eval_queries.txt');
-    if (!resp.ok) return;
-    const text = await resp.text();
-    const lines = text
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith('#'));
-
-    // Populate select
-    allEvalQueriesSelect.innerHTML = `<option value="">Select benchmark query (${lines.length} total)...</option>`;
-    for (const q of lines) {
-      const opt = document.createElement('option');
-      opt.value = q;
-      opt.textContent = q;
-      allEvalQueriesSelect.appendChild(opt);
-    }
-
-    allEvalQueriesSelect.addEventListener('change', () => {
-      if (allEvalQueriesSelect.value) {
-        queryInput.value = allEvalQueriesSelect.value;
-        executeSearch();
+// Infinite Scroll Sentinel & Load More button
+const scrollObserver = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting && currentRenderedCount < allResults.length && !searchInProgress) {
+        renderNextBatch();
       }
-    });
-
-    // Populate quick pills (first 8)
-    quickPills.innerHTML = '';
-    const sampleQueries = lines.slice(0, 8);
-    for (const q of sampleQueries) {
-      const pill = document.createElement('button');
-      pill.className = 'benchmark-pill';
-      pill.textContent = q;
-      pill.addEventListener('click', () => {
-        queryInput.value = q;
-        executeSearch();
-      });
-      quickPills.appendChild(pill);
     }
-  } catch (err) {
-    console.warn('Could not load eval_queries.txt:', err);
-  }
-}
+  },
+  { rootMargin: '250px' }
+);
+
+scrollObserver.observe(scrollSentinel);
+
+loadMoreBtn.addEventListener('click', () => {
+  renderNextBatch();
+});
 
 // Initial Bootstrapping
 async function bootstrap(): Promise<void> {
@@ -357,12 +377,9 @@ async function bootstrap(): Promise<void> {
   modelStatusBadge.className = 'badge warning';
   postToWorker({
     type: 'INIT_MODEL',
-    modelId: modelSelector.value,
+    modelId: DEFAULT_MODEL_ID,
     devicePreference: deviceSelector.value as 'auto' | 'webgpu' | 'wasm',
   });
-
-  // 3. Load eval queries
-  loadBenchmarkQueries();
 }
 
 bootstrap();

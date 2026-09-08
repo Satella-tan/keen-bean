@@ -69,6 +69,7 @@ export function parseInt8Binary(buffer: ArrayBuffer): CorpusIndex {
   // 4. Read sequential metadata records
   const decoder = new TextDecoder('utf-8');
   const items: CorpusItem[] = new Array(numItems);
+  const parentMap = new Map<string, import('./types').ChildChunk[]>();
 
   for (let i = 0; i < numItems; i++) {
     if (offset + 16 > buffer.byteLength) {
@@ -102,19 +103,28 @@ export function parseInt8Binary(buffer: ArrayBuffer): CorpusIndex {
     const text = decoder.decode(textBytes);
     offset += textLen;
 
+    const child = {
+      id,
+      parentId,
+      start,
+      end,
+      text,
+    };
+
     const vector = rawVectors.subarray(i * dims, (i + 1) * dims);
 
     items[i] = {
       scale: scales[i],
       vector,
-      child: {
-        id,
-        parentId,
-        start,
-        end,
-        text,
-      },
+      child,
     };
+
+    let parentChildren = parentMap.get(parentId);
+    if (!parentChildren) {
+      parentChildren = [];
+      parentMap.set(parentId, parentChildren);
+    }
+    parentChildren.push(child);
   }
 
   return {
@@ -123,5 +133,6 @@ export function parseInt8Binary(buffer: ArrayBuffer): CorpusIndex {
     items,
     scales,
     rawVectors,
+    parentMap,
   };
 }

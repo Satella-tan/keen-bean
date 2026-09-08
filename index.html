@@ -253,89 +253,239 @@
     .results-container {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
     }
 
+    /* Result Card Layout */
     .result-card {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px 16px;
-      transition: border-color 0.15s;
+      border-radius: 8px;
+      padding: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .result-card:hover {
-      border-color: #58a6ff66;
+      border-color: rgba(88, 166, 255, 0.4);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     }
 
-    .result-header {
+    .result-top-bar {
       display: flex;
       justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 8px;
-      font-size: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    }
+
+    .result-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .result-rank {
+      font-size: 12px;
       font-weight: 700;
       color: var(--accent);
-      font-size: 13px;
+      background: rgba(88, 166, 255, 0.1);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(88, 166, 255, 0.2);
+    }
+
+    .result-video-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--heading);
     }
 
     .result-scores {
       display: flex;
-      gap: 12px;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
       color: var(--text-muted);
     }
     .score-total {
       color: var(--accent-green);
       font-weight: 600;
+      font-size: 12px;
     }
 
-    .result-meta {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-bottom: 8px;
+    /* Card Body: YouTube Box + Context */
+    .result-body {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .result-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* YouTube Box */
+    .yt-box {
       display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-    .result-meta a {
-      color: var(--accent);
+      flex-direction: column;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
       text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s, border-color 0.15s;
     }
-    .result-meta a:hover {
+    .yt-box:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .yt-thumb-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #05070a;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .yt-thumb-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .yt-play-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 38px;
+      height: 38px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .yt-box:hover .yt-play-overlay {
+      background: #ff0000;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .yt-time-badge {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #f0f6fc;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    .yt-caption {
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #161b22;
+      border-top: 1px solid var(--border);
+      font-weight: 500;
+    }
+    .yt-box:hover .yt-caption {
       text-decoration: underline;
     }
 
-    .result-text {
-      color: var(--heading);
-      font-size: 13px;
-      line-height: 1.6;
+    /* Transcript & Context Formatting */
+    .transcript-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
       background: #0d1117;
-      padding: 10px 12px;
-      border-radius: 4px;
-      border-left: 3px solid var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      line-height: 1.6;
+      font-size: 13px;
     }
 
-    .benchmark-queries {
-      margin-top: 10px;
+    .context-sentence {
+      color: #7d8590;
+      padding: 2px 0;
+    }
+
+    .match-line {
       display: flex;
-      gap: 6px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .benchmark-pill {
-      background: #21262d;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 3px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      cursor: pointer;
-    }
-    .benchmark-pill:hover {
-      background: #30363d;
+      align-items: baseline;
+      gap: 8px;
       color: var(--heading);
+      background: rgba(88, 166, 255, 0.08);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border-left: 3px solid var(--accent);
+      margin: 3px 0;
+      font-weight: 500;
+    }
+
+    .match-indicator {
+      color: var(--accent);
+      font-weight: 700;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .match-text {
+      color: #f0f6fc;
+    }
+
+    /* Load More / Infinite Scroll */
+    .load-more-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 24px 0 16px;
+    }
+
+    .load-more-btn {
+      background: #21262d;
+      color: var(--heading);
+      border: 1px solid var(--border);
+      padding: 10px 24px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .load-more-btn:hover {
+      background: #30363d;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .results-info {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     select {
@@ -386,13 +536,6 @@
         <span class="status-label">Load / Parse Latency:</span>
         <span id="corpusLatencyVal" class="status-val">—</span>
       </div>
-      <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
-        <label class="secondary-btn" style="cursor: pointer;">
-          Load Custom .bin
-          <input type="file" id="customCorpusInput" accept=".bin" style="display: none;" />
-        </label>
-        <span id="customFileName" style="color: var(--text-muted); font-size: 11px;">Default: embeddings_BAAI_bge-small-en-v1.5_int8.bin</span>
-      </div>
     </div>
 
     <!-- Embedding Model Panel -->
@@ -403,10 +546,7 @@
       </div>
       <div class="status-row">
         <span class="status-label">Active Model:</span>
-        <select id="modelSelector">
-          <option value="Xenova/bge-small-en-v1.5" selected>BAAI/bge-small-en-v1.5 (Default Corpus)</option>
-          <option value="mixedbread-ai/mxbai-embed-xsmall-v1">mxbai-embed-xsmall-v1</option>
-        </select>
+        <span class="status-val">BAAI/bge-small-en-v1.5 (INT8 Q8)</span>
       </div>
       <div class="status-row">
         <span class="status-label">Device Backend:</span>
@@ -434,7 +574,7 @@
   <!-- Search Controls -->
   <div class="controls-panel">
     <div class="search-row">
-      <input type="text" id="queryInput" placeholder="Enter search query (e.g. 'how to manage big eating crashouts', 'forearm training')..." autofocus />
+      <input type="text" id="queryInput" placeholder="Enter search query (e.g. 'how to manage big eating crashouts', 'vegetable Glycerine', 'lapel guard')..." autofocus />
       <button id="searchBtn" disabled>Search</button>
     </div>
 
@@ -447,27 +587,6 @@
           <button class="mode-btn" data-mode="keyword">Keyword Only (BM25)</button>
         </div>
       </div>
-
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <span>Top K:</span>
-        <select id="topKSelector">
-          <option value="3">3</option>
-          <option value="5" selected>5</option>
-          <option value="10">10</option>
-          <option value="20">20</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Quick Benchmark Queries from eval_queries.txt -->
-    <div style="margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Benchmark Eval Queries (from eval_queries.txt):</span>
-        <select id="allEvalQueriesSelect" style="max-width: 320px;">
-          <option value="">Select benchmark query (100 total)...</option>
-        </select>
-      </div>
-      <div id="quickPills" class="benchmark-queries"></div>
     </div>
   </div>
 
@@ -496,6 +615,13 @@
     <div class="empty-state">
       Ready for search. Load status above will indicate when corpus and model are prepared.
     </div>
+  </div>
+
+  <!-- Pagination / Load More -->
+  <div id="paginationContainer" class="load-more-container" style="display: none;">
+    <button id="loadMoreBtn" class="load-more-btn">Load 5 More Results</button>
+    <span id="resultsCountInfo" class="results-info"></span>
+    <div id="scrollSentinel" style="height: 10px; width: 100%;"></div>
   </div>
 
   <script type="module" src="/src/main.ts"></script>

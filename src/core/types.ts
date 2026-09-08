@@ -12,12 +12,21 @@ export interface CorpusItem {
   vector: Int8Array;
 }
 
+export interface ParentContextChunk {
+  id: string;
+  start: number;
+  end: number;
+  text: string;
+  isMatch: boolean;
+}
+
 export interface CorpusIndex {
   numItems: number;
   dims: number;
   items: CorpusItem[];
   scales: Float32Array;
   rawVectors: Int8Array;
+  parentMap: Map<string, ChildChunk[]>;
 }
 
 export type SearchMode = 'hybrid' | 'semantic' | 'keyword';
@@ -37,9 +46,12 @@ export interface SearchResult {
   childId: string;
   parentId: string;
   videoId: string;
+  videoTitle: string;
+  scene: string;
   start: number;
   end: number;
   matchedText: string;
+  parentChunks: ParentContextChunk[];
 }
 
 export interface SearchTiming {

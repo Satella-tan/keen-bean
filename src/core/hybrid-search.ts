@@ -4,19 +4,45 @@ import { computeSemanticScores } from './vector-search';
 
 export const DEFAULT_SEMANTIC_WEIGHT = 0.70;
 export const DEFAULT_KEYWORD_WEIGHT = 0.30;
-export const DEFAULT_TOP_K = 10;
+export const DEFAULT_TOP_K = 50;
 
 /**
- * Extracts YouTube video ID from parent_id.
- * Matches Rust: parent_id.split('_').next(), then split_once(" - ") or split_whitespace()
+ * Extracts YouTube video ID, title, and scene name from parent_id.
  */
-export function extractVideoId(parentId: string): string {
-  const base = parentId.split('_')[0] || 'video';
-  const dashIndex = base.indexOf(' - ');
+export function parseParentId(parentId: string): { videoId: string; videoTitle: string; scene: string } {
+  const sceneMatch = parentId.match(/_(\d+)$/);
+  const sceneNum = sceneMatch ? sceneMatch[1] : '';
+  const prefix = sceneMatch ? parentId.substring(0, sceneMatch.index) : parentId;
+
+  const dashIndex = prefix.indexOf(' - ');
   if (dashIndex !== -1) {
-    return base.substring(0, dashIndex).trim();
+    const videoId = prefix.substring(0, dashIndex).trim();
+    const videoTitle = prefix.substring(dashIndex + 3).trim();
+    return {
+      videoId,
+      videoTitle,
+      scene: sceneNum ? `Scene ${sceneNum}` : '',
+    };
   }
-  return base.trim().split(/\s+/)[0] || base;
+
+  const spaceIndex = prefix.indexOf(' ');
+  if (spaceIndex !== -1) {
+    return {
+      videoId: prefix.substring(0, spaceIndex).trim(),
+      videoTitle: prefix.substring(spaceIndex + 1).trim(),
+      scene: sceneNum ? `Scene ${sceneNum}` : '',
+    };
+  }
+
+  return {
+    videoId: prefix.trim(),
+    videoTitle: prefix.trim(),
+    scene: sceneNum ? `Scene ${sceneNum}` : '',
+  };
+}
+
+export function extractVideoId(parentId: string): string {
+  return parseParentId(parentId).videoId;
 }
 
 export interface ScoredCandidate {
@@ -109,6 +135,19 @@ export class SearchEngine {
       }
       seenParents.add(parentId);
 
+      const parentChildren = (this.corpus.parentMap?.get(parentId) || [item.child])
+        .slice()
+        .sort((a, b) => a.start - b.start);
+      const parentChunks = parentChildren.map(ch => ({
+        id: ch.id,
+        start: ch.start,
+        end: ch.end,
+        text: ch.text,
+        isMatch: ch.id === item.child.id,
+      }));
+
+      const meta = parseParentId(parentId);
+
       results.push({
         rank: results.length + 1,
         score: c.score,
@@ -116,10 +155,13 @@ export class SearchEngine {
         keywordScore: c.keywordScore,
         childId: item.child.id,
         parentId,
-        videoId: extractVideoId(parentId),
+        videoId: meta.videoId,
+        videoTitle: meta.videoTitle,
+        scene: meta.scene,
         start: item.child.start,
         end: item.child.end,
         matchedText: item.child.text,
+        parentChunks,
       });
 
       if (results.length >= topK) {
