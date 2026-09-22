@@ -4,6 +4,7 @@ export interface ChildChunk {
   start: number;
   end: number;
   text: string;
+  topicTitle?: string;
 }
 
 export interface CorpusItem {
@@ -17,6 +18,7 @@ export interface ParentContextChunk {
   start: number;
   end: number;
   text: string;
+  topicTitle?: string;
   isMatch: boolean;
 }
 
@@ -48,6 +50,7 @@ export interface SearchResult {
   videoId: string;
   videoTitle: string;
   scene: string;
+  topicTitle?: string;
   start: number;
   end: number;
   matchedText: string;

@@ -32,8 +32,8 @@ export function parseInt8Binary(buffer: ArrayBuffer): CorpusIndex {
   }
 
   const version = view.getUint16(4, true);
-  if (version !== 1) {
-    throw new Error(`Unsupported KF8B version: ${version}, expected version 1`);
+  if (version !== 1 && version !== 2) {
+    throw new Error(`Unsupported KF8B version: ${version}, expected version 1 or 2`);
   }
 
   const numItems = view.getUint32(8, true);
@@ -103,12 +103,24 @@ export function parseInt8Binary(buffer: ArrayBuffer): CorpusIndex {
     const text = decoder.decode(textBytes);
     offset += textLen;
 
+    let topicTitle: string | undefined = undefined;
+    if (version >= 2) {
+      const topicLen = view.getUint16(offset, true);
+      offset += 2;
+      if (topicLen > 0) {
+        const topicBytes = new Uint8Array(buffer, offset, topicLen);
+        topicTitle = decoder.decode(topicBytes);
+        offset += topicLen;
+      }
+    }
+
     const child = {
       id,
       parentId,
       start,
       end,
       text,
+      topicTitle,
     };
 
     const vector = rawVectors.subarray(i * dims, (i + 1) * dims);

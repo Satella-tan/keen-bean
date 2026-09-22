@@ -6,6 +6,13 @@ import type { WorkerRequest, WorkerResponse } from './worker-types';
 const embeddingEngine = new BrowserEmbeddingEngine();
 let searchEngine: SearchEngine | null = null;
 
+export function formatQuery(query: string, modelId?: string | null): string {
+  if (!modelId || modelId.startsWith('BAAI/bge-') || modelId.startsWith('Xenova/bge-')) {
+    return `Represent this sentence for searching relevant passages: ${query}`;
+  }
+  return query;
+}
+
 function postResponse(response: WorkerResponse): void {
   self.postMessage(response);
 }
@@ -71,7 +78,8 @@ self.addEventListener('message', async (event: MessageEvent<WorkerRequest>) => {
 
         if (mode !== 'keyword') {
           const embedStart = performance.now();
-          queryVector = await embeddingEngine.embed(message.query);
+          const queryForEmbedding = formatQuery(message.query, embeddingEngine.modelId);
+          queryVector = await embeddingEngine.embed(queryForEmbedding);
           embedMs = Math.round((performance.now() - embedStart) * 10) / 10;
         }
 

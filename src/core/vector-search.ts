@@ -6,28 +6,26 @@ import type { CorpusItem } from './types';
  */
 export function cosineSimilarityInt8(
   queryFp32: Float32Array | number[],
-  scaleB: number,
+  _scaleB: number,
   int8B: Int8Array
 ): number {
   let dot = 0.0;
-  let normA = 0.0;
   let normB = 0.0;
   const len = queryFp32.length;
 
   for (let i = 0; i < len; i++) {
-    const x = queryFp32[i];
-    const yf = int8B[i] * scaleB;
+    const q = queryFp32[i];
+    const v = int8B[i];
 
-    dot += x * yf;
-    normA += x * x;
-    normB += yf * yf;
+    dot += q * v;
+    normB += v * v;
   }
 
-  if (normA === 0.0 || normB === 0.0) {
+  if (normB === 0.0) {
     return 0.0;
   }
 
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  return dot / Math.sqrt(normB);
 }
 
 /**

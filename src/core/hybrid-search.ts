@@ -52,13 +52,75 @@ export interface ScoredCandidate {
   keywordScore: number;
 }
 
+export function getSearchableText(child: import('./types').ChildChunk): string {
+  if (child.topicTitle && child.topicTitle.trim().length > 0) {
+    return `Topic: ${child.topicTitle}\nTranscript: ${child.text}`;
+  }
+  return child.text;
+}
+
+function computeWordOverlap(textA: string, textB: string): number {
+  const wordsA = textA.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+  const wordsB = textB.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+  if (wordsA.length === 0 || wordsB.length === 0) return 0;
+
+  const setA = new Set(wordsA);
+  const setB = new Set(wordsB);
+  let common = 0;
+  for (const w of setA) {
+    if (setB.has(w)) common++;
+  }
+  const union = setA.size + setB.size - common;
+  return union > 0 ? common / union : 0;
+}
+
+function isDuplicateCandidate(
+  candidate: { videoId: string; start: number; end: number; topicTitle?: string; text: string; parentId: string },
+  existingResults: SearchResult[]
+): boolean {
+  for (const existing of existingResults) {
+    // 1. Same exact parent scene
+    if (candidate.parentId === existing.parentId) {
+      return true;
+    }
+
+    // 2. Same video checks
+    if (candidate.videoId === existing.videoId) {
+      // Same chapter topic in the same video -> keep only the highest scoring snippet
+      if (candidate.topicTitle && existing.topicTitle && candidate.topicTitle === existing.topicTitle) {
+        return true;
+      }
+
+      // Overlapping or closely adjacent timestamps (within 60s) in the same video
+      const maxStart = Math.max(candidate.start, existing.start);
+      const minEnd = Math.min(candidate.end, existing.end);
+      if (maxStart <= minEnd + 60) {
+        return true;
+      }
+    }
+
+    // 3. Significant text overlap (substring containment or >= 50% word overlap)
+    const normCand = candidate.text.trim().toLowerCase();
+    const normExist = existing.matchedText.trim().toLowerCase();
+    if (normCand.length > 20 && normExist.length > 20) {
+      if (normCand.includes(normExist) || normExist.includes(normCand)) {
+        return true;
+      }
+      if (computeWordOverlap(normCand, normExist) >= 0.50) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export class SearchEngine {
   private corpus: CorpusIndex;
   private bm25: BM25Index;
 
   constructor(corpus: CorpusIndex) {
     this.corpus = corpus;
-    const texts = corpus.items.map(item => item.child.text);
+    const texts = corpus.items.map(item => getSearchableText(item.child));
     this.bm25 = new BM25Index(texts);
   }
 
@@ -121,19 +183,27 @@ export class SearchEngine {
     // 4. Sort descending by score
     candidates.sort((a, b) => b.score - a.score);
 
-    // 5. Deduplicate by parent_id and take top_k
-    const seenParents = new Set<string>();
+    // 5. Deduplicate and collect top_k results
     const results: SearchResult[] = [];
 
     for (let i = 0; i < candidates.length; i++) {
       const c = candidates[i];
       const item = this.corpus.items[c.index];
       const parentId = item.child.parentId;
+      const meta = parseParentId(parentId);
 
-      if (seenParents.has(parentId)) {
+      const candidateInfo = {
+        videoId: meta.videoId,
+        start: item.child.start,
+        end: item.child.end,
+        topicTitle: item.child.topicTitle,
+        text: item.child.text,
+        parentId,
+      };
+
+      if (isDuplicateCandidate(candidateInfo, results)) {
         continue;
       }
-      seenParents.add(parentId);
 
       const parentChildren = (this.corpus.parentMap?.get(parentId) || [item.child])
         .slice()
@@ -143,10 +213,9 @@ export class SearchEngine {
         start: ch.start,
         end: ch.end,
         text: ch.text,
+        topicTitle: ch.topicTitle,
         isMatch: ch.id === item.child.id,
       }));
-
-      const meta = parseParentId(parentId);
 
       results.push({
         rank: results.length + 1,
@@ -158,6 +227,7 @@ export class SearchEngine {
         videoId: meta.videoId,
         videoTitle: meta.videoTitle,
         scene: meta.scene,
+        topicTitle: item.child.topicTitle,
         start: item.child.start,
         end: item.child.end,
         matchedText: item.child.text,

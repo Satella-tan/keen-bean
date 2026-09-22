@@ -32,6 +32,8 @@ const paginationContainer = document.getElementById('paginationContainer') as HT
 const loadMoreBtn = document.getElementById('loadMoreBtn') as HTMLButtonElement;
 const resultsCountInfo = document.getElementById('resultsCountInfo') as HTMLElement;
 const scrollSentinel = document.getElementById('scrollSentinel') as HTMLElement;
+const debugPanel = document.getElementById('debugPanel') as HTMLElement;
+const debugToggleBtn = document.getElementById('debugToggleBtn') as HTMLButtonElement;
 
 // Model & Config
 const DEFAULT_MODEL_ID = 'Xenova/bge-small-en-v1.5';
@@ -166,30 +168,63 @@ function renderContext(r: SearchResult): string {
       .join('');
   }
 
-  return r.parentChunks
-    .map((chunk) => {
-      const sentences = splitSentences(chunk.text);
-      if (chunk.isMatch) {
-        return sentences
-          .map((s) => `<div class="match-line"><span class="match-indicator">&gt;&gt;</span> <span class="match-text">${escapeHtml(s)}</span></div>`)
-          .join('');
-      } else {
-        return sentences
-          .map((s) => `<div class="context-sentence">${escapeHtml(s)}</div>`)
-          .join('');
+  const matchedSentences = splitSentences(r.matchedText);
+  const norm = (s: string) => s.trim().toLowerCase().replace(/[^\w\s]/g, '');
+  const matchSet = new Set(matchedSentences.map(norm).filter(Boolean));
+
+  const output: string[] = [];
+  const recentSeen = new Set<string>();
+  const recentQueue: string[] = [];
+
+  for (const chunk of r.parentChunks) {
+    const sentences = splitSentences(chunk.text);
+    for (const s of sentences) {
+      const key = norm(s);
+      if (!key) continue;
+
+      // Skip duplicate boundary sentences from sliding window chunking
+      if (recentSeen.has(key)) {
+        continue;
       }
-    })
-    .join('');
+
+      recentSeen.add(key);
+      recentQueue.push(key);
+      if (recentQueue.length > 8) {
+        const oldest = recentQueue.shift();
+        if (oldest) recentSeen.delete(oldest);
+      }
+
+      const isMatch = matchSet.has(key);
+      if (isMatch) {
+        output.push(
+          `<div class="match-line"><span class="match-indicator">&gt;&gt;</span> <span class="match-text">${escapeHtml(s)}</span></div>`
+        );
+      } else {
+        output.push(
+          `<div class="context-sentence">${escapeHtml(s)}</div>`
+        );
+      }
+    }
+  }
+
+  if (output.length === 0) {
+    return matchedSentences
+      .map((s) => `<div class="match-line"><span class="match-indicator">&gt;&gt;</span> <span class="match-text">${escapeHtml(s)}</span></div>`)
+      .join('');
+  }
+
+  return output.join('');
 }
 
-function renderResultCard(r: SearchResult): HTMLElement {
+function renderResultCard(r: SearchResult, isLowRelevance = false): HTMLElement {
   const card = document.createElement('div');
-  card.className = 'result-card';
+  card.className = isLowRelevance ? 'result-card low-relevance' : 'result-card';
 
   const youtubeUrl = `https://youtu.be/${r.videoId}?t=${r.start}`;
   const timeDisplay = `${formatSeconds(r.start)} - ${formatSeconds(r.end)}`;
-  const thumbUrl = `https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg`;
   const displayTitle = r.videoTitle || r.videoId;
+  const thumbUrl = `https://img.youtube.com/vi/${r.videoId}/mqdefault.jpg`;
+  const topicBadge = r.topicTitle ? `<span class="topic-badge" title="Chapter: ${escapeHtml(r.topicTitle)}">📌 ${escapeHtml(r.topicTitle)}</span>` : '';
   const sceneBadge = r.scene ? `<span class="badge">${escapeHtml(r.scene)}</span>` : '';
 
   card.innerHTML = `
@@ -197,7 +232,8 @@ function renderResultCard(r: SearchResult): HTMLElement {
       <div class="result-title-group">
         <span class="result-rank">#${r.rank}</span>
         <span class="result-video-title" title="${escapeHtml(displayTitle)}">${escapeHtml(displayTitle)}</span>
-        ${sceneBadge}
+        ${topicBadge}
+        ${!topicBadge && sceneBadge ? sceneBadge : ''}
       </div>
       <div class="result-scores">
         <span>Score: <strong class="score-total">${r.score.toFixed(4)}</strong></span>
@@ -229,42 +265,164 @@ function renderResultCard(r: SearchResult): HTMLElement {
   return card;
 }
 
+// Score filtering thresholds
+const SCORE_ABSOLUTE_MIN = 0.10;    // Hard cutoff — never show below this
+const SCORE_CLIFF_MIN_DROP = 0.10;  // Min absolute drop between consecutive results to be a cliff
+const SCORE_CLIFF_DOMINANCE = 2.5;  // Cliff step must be N× larger than the average prior step
+
+interface ProcessedResults {
+  strong: SearchResult[];       // Above cliff, shown normally
+  weak: SearchResult[];         // Below cliff, shown dimmed
+  cliffScore: number | null;    // Score at which cliff was detected
+  droppedZero: number;          // Count of results filtered for being ~0
+}
+
+function classifyResults(results: SearchResult[]): ProcessedResults {
+  // 1. Hard filter: drop near-zero scores
+  const valid = results.filter((r) => r.score >= SCORE_ABSOLUTE_MIN);
+  const droppedZero = results.length - valid.length;
+
+  if (valid.length < 2) {
+    return { strong: valid, weak: [], cliffScore: null, droppedZero };
+  }
+
+  // 2. Detect cliff using consecutive-gap analysis.
+  //    The cliff is the step index where the drop from valid[i-1] to valid[i]
+  //    is notably larger than the typical prior drop AND exceeds the min threshold.
+  let cliffIndex = valid.length;
+  let cliffScore: number | null = null;
+
+  for (let i = 1; i < valid.length; i++) {
+    const drop = valid[i - 1].score - valid[i].score;
+
+    // Must clear the minimum absolute drop threshold
+    if (drop < SCORE_CLIFF_MIN_DROP) continue;
+
+    // Compare against the average drop across all previous consecutive pairs
+    let avgPriorDrop = 0;
+    if (i > 1) {
+      let totalPrior = 0;
+      for (let j = 1; j < i; j++) {
+        totalPrior += valid[j - 1].score - valid[j].score;
+      }
+      avgPriorDrop = totalPrior / (i - 1);
+    }
+
+    // Cliff fires if this drop dominates over prior drops (or there are no prior drops)
+    const dominates = i === 1 || avgPriorDrop === 0 || drop >= avgPriorDrop * SCORE_CLIFF_DOMINANCE;
+    if (dominates) {
+      cliffIndex = i;
+      cliffScore = valid[i].score;
+      break;
+    }
+  }
+
+  return {
+    strong: valid.slice(0, cliffIndex),
+    weak: valid.slice(cliffIndex),
+    cliffScore,
+    droppedZero,
+  };
+}
+
+let weakResults: SearchResult[] = [];
+let cliffDetected: number | null = null;
+let droppedCount = 0;
+let cliffBannerInserted = false;
+
 function renderNextBatch(): void {
   if (currentRenderedCount >= allResults.length) return;
 
   const nextCount = Math.min(currentRenderedCount + PAGE_SIZE, allResults.length);
+  const strongCount = allResults.length - weakResults.length;
+
   for (let i = currentRenderedCount; i < nextCount; i++) {
-    const card = renderResultCard(allResults[i]);
+    // Insert cliff divider right between strong results and dropoff results
+    if (i === strongCount && !cliffBannerInserted && cliffDetected !== null && weakResults.length > 0) {
+      const topScore = allResults[0]?.score.toFixed(3) ?? '';
+      const cliffStr = cliffDetected.toFixed(3);
+      const divider = document.createElement('div');
+      divider.className = 'score-warning cliff-divider';
+      divider.innerHTML = `
+        <span class="warn-icon">📉</span>
+        <div class="warn-text">
+          <strong>Score dropoff detected (${topScore} → ${cliffStr})</strong> — The ${weakResults.length} dimmed result${weakResults.length > 1 ? 's' : ''} below this point have significantly lower confidence and may be less relevant.
+        </div>
+      `;
+      resultsContainer.appendChild(divider);
+      cliffBannerInserted = true;
+    }
+
+    const isWeak = i >= strongCount;
+    const card = renderResultCard(allResults[i], isWeak);
     resultsContainer.appendChild(card);
   }
   currentRenderedCount = nextCount;
 
-  resultsCountInfo.textContent = `Showing ${currentRenderedCount} of ${allResults.length} results`;
+  const shownWeak = Math.max(0, currentRenderedCount - strongCount);
+  let countText = `Showing ${currentRenderedCount} of ${allResults.length} results`;
+  if (shownWeak > 0) {
+    countText += ` (${shownWeak} below dropoff)`;
+  }
+  resultsCountInfo.textContent = countText;
 
   if (currentRenderedCount >= allResults.length) {
     loadMoreBtn.style.display = 'none';
-    resultsCountInfo.textContent = `Showing all ${allResults.length} results`;
+    resultsCountInfo.textContent = countText.replace('Showing', 'Showing all').replace(/ of \d+ results/, ' results');
   } else {
     loadMoreBtn.style.display = 'block';
     const remaining = allResults.length - currentRenderedCount;
-    loadMoreBtn.textContent = `Load 5 More Results (${remaining} remaining)`;
+    const nextIsWeak = currentRenderedCount >= strongCount;
+    loadMoreBtn.textContent = nextIsWeak
+      ? `Load 5 More (below dropoff)`
+      : `Load 5 More Results (${remaining} remaining)`;
   }
 }
 
 // Render results
 function renderResults(results: SearchResult[]): void {
-  allResults = results;
   currentRenderedCount = 0;
+  cliffBannerInserted = false;
   resultsContainer.innerHTML = '';
 
   if (results.length === 0) {
     paginationContainer.style.display = 'none';
-    resultsContainer.innerHTML = `
-      <div class="empty-state">
-        No results matched your query.
-      </div>
-    `;
+    allResults = [];
+    weakResults = [];
+    cliffDetected = null;
+    droppedCount = 0;
+    resultsContainer.innerHTML = `<div class="empty-state">No results matched your query.</div>`;
     return;
+  }
+
+  const classified = classifyResults(results);
+  weakResults = classified.weak;
+  cliffDetected = classified.cliffScore;
+  droppedCount = classified.droppedZero;
+  allResults = [...classified.strong, ...classified.weak];
+
+  // Top warning banner (only for dropped zero-score items)
+  const warnings: string[] = [];
+
+  if (droppedCount > 0) {
+    warnings.push(
+      `<div class="score-warning">` +
+      `<span class="warn-icon">⚠</span>` +
+      `<span class="warn-text"><strong>${droppedCount} result${droppedCount > 1 ? 's' : ''} hidden</strong> — scores were near zero (≤ ${SCORE_ABSOLUTE_MIN}), meaning the corpus likely has no relevant content for this query.</span>` +
+      `</div>`
+    );
+  }
+
+  if (classified.strong.length === 0) {
+    paginationContainer.style.display = 'none';
+    resultsContainer.innerHTML =
+      warnings.join('') +
+      `<div class="empty-state">No results met the minimum relevance threshold. Try different keywords or switch modes.</div>`;
+    return;
+  }
+
+  if (warnings.length > 0) {
+    resultsContainer.innerHTML = warnings.join('');
   }
 
   paginationContainer.style.display = 'flex';
@@ -342,6 +500,14 @@ deviceSelector.addEventListener('change', () => {
     modelId: DEFAULT_MODEL_ID,
     devicePreference: deviceSelector.value as 'auto' | 'webgpu' | 'wasm',
   });
+});
+
+// Debug panel toggle
+debugToggleBtn.addEventListener('click', () => {
+  const isVisible = debugPanel.style.display !== 'none';
+  debugPanel.style.display = isVisible ? 'none' : 'grid';
+  debugToggleBtn.classList.toggle('active', !isVisible);
+  debugToggleBtn.textContent = isVisible ? '⚙ Debug' : '⚙ Hide Debug';
 });
 
 // Infinite Scroll Sentinel & Load More button

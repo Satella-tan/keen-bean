@@ -305,6 +305,20 @@
       color: var(--heading);
     }
 
+    .topic-badge {
+      background: rgba(188, 140, 255, 0.15);
+      border: 1px solid rgba(188, 140, 255, 0.35);
+      color: var(--accent-purple);
+      font-weight: 500;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      max-width: 480px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .result-scores {
       display: flex;
       align-items: center;
@@ -503,22 +517,74 @@
       padding: 40px 20px;
       color: var(--text-muted);
     }
+
+    /* Score quality warning banner */
+    .score-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(210, 153, 34, 0.08);
+      border: 1px solid rgba(210, 153, 34, 0.35);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: var(--accent-orange);
+      margin-bottom: 4px;
+    }
+    .score-warning .warn-icon {
+      flex-shrink: 0;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    .score-warning .warn-text {
+      line-height: 1.5;
+    }
+    .score-warning strong {
+      color: var(--heading);
+    }
+
+    .score-warning.cliff-divider {
+      margin: 16px 0 10px 0;
+      background: rgba(210, 153, 34, 0.10);
+      border: 1px dashed rgba(210, 153, 34, 0.5);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    /* Dim / ghost cards for low-relevance results */
+    .result-card.low-relevance {
+      opacity: 0.55;
+      border-style: dashed;
+    }
+    .result-card.low-relevance:hover {
+      opacity: 0.8;
+    }
+
+    /* Debug toggle active state */
+    .secondary-btn.active {
+      background: rgba(88, 166, 255, 0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
   </style>
-  <script type="module" crossorigin src="/assets/index-D8INO4_p.js"></script>
+  <script type="module" crossorigin src="/assets/index-BBH4Xk4i.js"></script>
 </head>
 <body>
   <header>
     <h1>
-      Keenan Finder — Engine Testbed
+      Keenan Finder
       <span id="engineBadge" class="badge">Initializing...</span>
       <span id="deviceBadge" class="badge">Detecting hardware...</span>
     </h1>
-    <div style="color: var(--text-muted); font-size: 12px;">
-      100% Client-Side In-Browser Vector & BM25 Search over INT8 Quantized Transcripts
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+      <div style="color: var(--text-muted); font-size: 12px;">
+        100% Client-Side In-Browser Vector &amp; BM25 Search over INT8 Quantized Transcripts
+      </div>
+      <button id="debugToggleBtn" class="secondary-btn" style="font-size: 11px; padding: 4px 10px; border-radius: 4px;">⚙ Debug</button>
     </div>
   </header>
 
-  <div class="grid">
+  <div id="debugPanel" class="grid" style="display: none;">
     <!-- Corpus Panel -->
     <div class="card">
       <div class="card-title">
