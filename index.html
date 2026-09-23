@@ -4,6 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KeenBean — Broadcast Yourself</title>
+  <!-- Google Analytics: set the Measurement ID below (G-XXXXXXX) and GA loads automatically. -->
+  <script>
+    window.KEENBEAN_GA_ID = "";
+    (function () {
+      var id = window.KEENBEAN_GA_ID;
+      if (!/^G-[A-Z0-9]+$/.test(id)) return;
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+      window.gtag("js", new Date());
+      window.gtag("config", id);
+    })();
+  </script>
   <style>
     :root {
       /* Old-YouTube (2007) chrome */
@@ -127,7 +143,7 @@
       inset: 22px 22px 46px;
       border-radius: 8px;
       pointer-events: none;
-      background: linear-gradient(115deg, rgba(255, 255, 255, 0.13) 0 9%, rgba(255, 255, 255, 0) 22%);
+      background: linear-gradient(118deg, rgba(255, 255, 255, 0.06) 0 6%, rgba(255, 255, 255, 0) 18%);
     }
 
     .monitor-screen {
@@ -187,7 +203,11 @@
     }
 
     /* ============ App (the old-YouTube site inside the screen) ============ */
-    .app { min-height: 100%; }
+    .app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
 
     /* ---- Top bar ---- */
     .yt-top {
@@ -208,9 +228,15 @@
     .yt-logo {
       display: flex;
       flex-direction: column;
-      text-decoration: none;
       flex-shrink: 0;
       line-height: 1;
+      padding: 0;
+      text-align: left;
+      background: none;
+      border: none;
+      border-radius: 0;
+      cursor: pointer;
+      font: inherit;
     }
     .yt-logo-line {
       display: flex;
@@ -243,6 +269,17 @@
       color: var(--yt-muted);
       letter-spacing: 0.4px;
     }
+    .yt-beta {
+      display: inline-block;
+      margin-left: 5px;
+      padding: 0 5px;
+      font: 700 9px var(--yt-font);
+      letter-spacing: 1px;
+      color: #fff;
+      background: linear-gradient(180deg, #ff3b2f, #cc0000);
+      border-radius: 3px;
+      vertical-align: 1px;
+    }
 
     .yt-top-center {
       flex: 1;
@@ -261,9 +298,9 @@
       border: 1px solid var(--yt-border);
       border-bottom: none;
       border-radius: 4px 4px 0 0;
-      cursor: pointer;
     }
-    .yt-tab:hover { background: #fff; }
+    button.yt-tab { cursor: pointer; }
+    button.yt-tab:hover { background: #fff; }
     .yt-tab.active {
       background: #fff;
       color: #111;
@@ -323,14 +360,26 @@
       color: var(--yt-link);
     }
     .yt-account .sep { color: #9aa1ad; }
+    .yt-help-link {
+      padding: 0;
+      font: 12px var(--yt-font);
+      color: var(--yt-link);
+      background: none;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      cursor: pointer;
+    }
+    .yt-help-link:hover { text-decoration: underline; }
 
     .yt-status { display: flex; gap: 6px; flex-shrink: 0; }
 
     /* ---- Body: sidebar + main ---- */
     .yt-body {
+      flex: 1;
       display: grid;
       grid-template-columns: 226px minmax(0, 1fr);
-      align-items: start;
+      align-items: stretch;
     }
 
     .yt-sidebar {
@@ -742,66 +791,59 @@
     #debugToggleBtn:hover { background: linear-gradient(180deg, #fff, #d5dae2); }
     #debugToggleBtn.active { color: #fff; background: linear-gradient(180deg, #7d92bd, #5d76a8); }
 
-    /* ============ Tab pages ============ */
-    .yt-body[hidden], .yt-page[hidden], .yt-page-view[hidden], .yt-split-overlay[hidden] { display: none !important; }
+    /* ============ Views inside the results area (sidebar/navbar stay) ============ */
+    .yt-view[hidden] { display: none !important; }
 
-    .yt-page { min-height: 420px; padding: 26px 16px 44px; background: var(--yt-page); }
-    .yt-placeholder {
-      padding: 70px 20px;
-      text-align: center;
-      color: var(--yt-muted);
-      font: 14px var(--yt-font);
-    }
-
+    /* Help view — left aligned */
     .yt-creator {
-      max-width: 520px;
-      margin: 0 auto 26px;
-      padding: 26px 24px;
-      text-align: center;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      max-width: 720px;
+      margin: 4px 0 24px;
+      padding: 18px;
+      text-align: left;
       background: #fff;
       border: 1px solid var(--yt-border);
       border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
     }
     .yt-pfp {
-      display: block;
-      width: 120px;
-      height: 120px;
-      margin: 0 auto 14px;
+      flex: 0 0 auto;
+      width: 112px;
+      height: 112px;
       object-fit: cover;
       border-radius: 50%;
       border: 3px solid #fff;
       box-shadow: 0 0 0 1px var(--yt-border), 0 3px 12px rgba(0, 0, 0, 0.22);
     }
-    .yt-creator-name { font: 700 24px var(--yt-font); color: #111; }
-    .yt-creator-handle { display: inline-block; margin-top: 2px; font: 600 14px var(--yt-font); color: var(--yt-link); }
-    .yt-creator-bio { margin-top: 14px; font: 14px/1.6 var(--yt-font); color: #333; }
+    .yt-creator-meta { min-width: 0; }
+    .yt-creator-name { font: 700 22px var(--yt-font); color: #111; }
+    .yt-creator-role { display: inline-block; margin-top: 2px; font: 600 13px var(--yt-font); color: var(--yt-blue-dark); }
+    .yt-creator-bio { margin-top: 12px; font: 14px/1.6 var(--yt-font); color: #333; }
 
-    .yt-dev { max-width: 900px; margin: 0 auto; text-align: center; }
+    .yt-dev { text-align: left; }
 
-    /* ============ Training-split result overlay ============ */
-    .yt-split-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 8000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: rgba(10, 12, 16, 0.5);
-    }
+    /* Training-split view — replaces the results area */
     .yt-split-card {
-      width: min(420px, 88%);
+      max-width: 460px;
+      margin: 36px auto;
       padding: 22px;
       text-align: center;
       background: #fff;
       border: 1px solid var(--yt-border);
       border-radius: 4px;
-      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.42);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
     }
     .yt-split-img { display: block; width: min(260px, 72%); margin: 0 auto 14px; border-radius: 4px; }
-    .yt-split-title { font: 700 20px var(--yt-font); color: #111; }
-    .yt-split-msg { margin-top: 8px; font: 14px/1.55 var(--yt-font); color: #333; }
+    .yt-split-msg { margin-top: 8px; font: 700 16px/1.5 var(--yt-font); color: #111; }
+    .yt-split-hint {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--yt-border-soft);
+      font: 12px/1.5 var(--yt-font);
+      color: var(--yt-muted);
+    }
 
     /* ============ Responsive ============ */
     @media (max-width: 1000px) {
@@ -830,7 +872,6 @@
     @media (max-width: 640px) {
       .yt-top { flex-wrap: wrap; gap: 10px; }
       .yt-logo-line { font-size: 24px; }
-      .yt-account { display: none; }
       .yt-cat { display: none; }
       .yt-tab { padding: 4px 10px; }
       .yt-top-center { flex-basis: 100%; }
@@ -893,18 +934,17 @@
           <div class="app">
             <!-- ===== Old-YouTube top bar ===== -->
             <header class="yt-top">
-              <a class="yt-logo" href="./" aria-label="KeenBean home">
+              <button type="button" class="yt-logo" id="ytLogo" aria-label="KeenBean home">
                 <span class="yt-logo-line"><span class="yt-logo-word">Keen</span><span class="yt-logo-badge">Bean</span></span>
-                <span class="yt-logo-tag">Broadcast Yourself</span>
-              </a>
+                <span class="yt-logo-tag">apply for coaching <b class="yt-beta">BETA</b></span>
+              </button>
 
               <div class="yt-top-center">
                 <nav class="yt-tabs">
-                  <button class="yt-tab active" data-page="home">Home</button>
-                  <button class="yt-tab" data-page="videos">Videos</button>
-                  <button class="yt-tab" data-page="channels">Channels</button>
-                  <button class="yt-tab" data-page="community">Community</button>
-                  <button class="yt-tab" data-page="help">Help</button>
+                  <button type="button" class="yt-tab active" data-page="home">Home</button>
+                  <span class="yt-tab">Videos</span>
+                  <span class="yt-tab">Channels</span>
+                  <span class="yt-tab">Community</span>
                 </nav>
                 <div class="yt-search">
                   <input type="text" id="queryInput" placeholder="Search the archive (e.g. 'carb swishing', 'moment arm length in lateral raises')" autofocus />
@@ -913,8 +953,9 @@
                 </div>
               </div>
 
-              <div class="yt-account" aria-hidden="true">
-                <span>Sign Up</span><span class="sep">|</span><span>Log In</span><span class="sep">|</span><span>Help</span>
+              <div class="yt-account">
+                <span>Sign Up</span><span class="sep">|</span><span>Log In</span><span class="sep">|</span>
+                <button type="button" class="yt-help-link" id="ytHelpLink">Help</button>
               </div>
 
               <div class="yt-status" aria-hidden="true">
@@ -930,7 +971,7 @@
                 <ul class="yt-cats">
                   <li data-split="PPL" data-result="wrong">PPL</li>
                   <li data-split="U/L/R" data-result="neither">U/L/R</li>
-                  <li data-split="FBOED" data-result="correct">FBOED</li>
+                  <li data-split="FBEOD" data-result="correct">FBEOD</li>
                   <li data-split="Arnold" data-result="wrong">Arnold</li>
                   <li data-split="Bro Split" data-result="wrong">Bro Split</li>
                   <li data-split="Left and Right" data-result="correct">Left and Right</li>
@@ -948,132 +989,128 @@
               </aside>
 
               <main class="yt-main">
-                <div class="yt-results-header">
-                  <span id="ytResultsCount" class="yt-results-count">Search the archive to begin</span>
-                  <div class="yt-results-right">
-                    <span class="yt-sort" aria-hidden="true">Sort by: <b>Relevance</b> &#9662;</span>
-                    <div class="mode-selector" role="group" aria-label="Search mode">
-                      <button class="mode-btn active" data-mode="hybrid">Hybrid (70/30)</button>
-                      <button class="mode-btn" data-mode="semantic">Semantic Only</button>
-                      <button class="mode-btn" data-mode="keyword">Keyword Only (BM25)</button>
+                <!-- Home view: search results (default) -->
+                <div class="yt-view" id="viewHome">
+                  <div class="yt-results-header">
+                    <span id="ytResultsCount" class="yt-results-count">Search the archive to begin</span>
+                    <div class="yt-results-right">
+                      <span class="yt-sort" aria-hidden="true">Sort by: <b>Relevance</b> &#9662;</span>
+                      <div class="mode-selector" role="group" aria-label="Search mode">
+                        <button class="mode-btn active" data-mode="hybrid">Hybrid (70/30)</button>
+                        <button class="mode-btn" data-mode="semantic">Semantic Only</button>
+                        <button class="mode-btn" data-mode="keyword">Keyword Only (BM25)</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Metrics (developer mode only) -->
+                  <div id="metricsBar" class="metrics-bar" style="display: none;">
+                    <div class="metric-item"><span class="status-label">Embedding:</span><span id="metricEmbed" class="metric-value">0 ms</span></div>
+                    <div class="metric-item"><span class="status-label">Search (INT8 + BM25):</span><span id="metricSearch" class="metric-value">0 ms</span></div>
+                    <div class="metric-item"><span class="status-label">Total Time:</span><span id="metricTotal" class="metric-value">0 ms</span></div>
+                    <div class="metric-item"><span class="status-label">Query:</span><span id="metricQuery" style="color: #111;">—</span></div>
+                  </div>
+
+                  <!-- Results -->
+                  <div id="resultsContainer" class="results-container">
+                    <div class="empty-state">
+                      Ready for search. Load status will indicate when the corpus and model are prepared.
+                    </div>
+                  </div>
+
+                  <!-- Pagination -->
+                  <div id="paginationContainer" class="load-more-container" style="display: none;">
+                    <button id="loadMoreBtn">Load 5 More Results</button>
+                    <span id="resultsCountInfo" class="results-info"></span>
+                    <div id="scrollSentinel" style="height: 10px; width: 100%;"></div>
+                  </div>
+                </div>
+
+                <!-- Help view: creator + developer mode (opens from the Help link) -->
+                <div class="yt-view" id="viewHelp" hidden>
+                  <div class="yt-creator">
+                    <img class="yt-pfp" src="/assets/satella_pfp.jpeg" alt="Satella — creator of KeenBean" />
+                    <div class="yt-creator-meta">
+                      <h2 class="yt-creator-name">Satella</h2>
+                      <span class="yt-creator-role">Creator of KeenBean</span>
+                      <p class="yt-creator-bio">if you have any problems/idea or feedback please 🥺🥺 dm me on discord! @streliziaa</p>
+                    </div>
+                  </div>
+
+                  <div class="yt-dev">
+                    <button id="debugToggleBtn" title="Toggle developer panel">&#9881; Debug</button>
+                    <div id="debugPanel" class="grid" style="display: none;">
+                      <div class="card">
+                        <div class="card-title">
+                          <span>Corpus Status</span>
+                          <span id="corpusStatusBadge" class="badge">Loading...</span>
+                        </div>
+                        <div class="status-row">
+                          <span class="status-label">Items Loaded:</span>
+                          <span id="numItemsVal" class="status-val">—</span>
+                        </div>
+                        <div class="status-row">
+                          <span class="status-label">Embedding Dimensions:</span>
+                          <span id="dimsVal" class="status-val">—</span>
+                        </div>
+                        <div class="status-row">
+                          <span class="status-label">Load / Parse Latency:</span>
+                          <span id="corpusLatencyVal" class="status-val">—</span>
+                        </div>
+                      </div>
+
+                      <div class="card">
+                        <div class="card-title">
+                          <span>Browser Neural Engine</span>
+                          <span id="modelStatusBadge" class="badge">Waiting...</span>
+                        </div>
+                        <div class="status-row">
+                          <span class="status-label">Active Model:</span>
+                          <span class="status-val">BAAI/bge-small-en-v1.5 (INT8 Q8)</span>
+                        </div>
+                        <div class="status-row">
+                          <span class="status-label">Device Backend:</span>
+                          <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="deviceSelector">
+                              <option value="wasm" selected>WASM / CPU (Fast &amp; Exact, ~12ms)</option>
+                              <option value="webgpu">WebGPU (FP32)</option>
+                            </select>
+                            <span id="activeDeviceVal" class="status-val">—</span>
+                          </div>
+                        </div>
+                        <div class="status-row">
+                          <span class="status-label">Model Init Latency:</span>
+                          <span id="modelInitLatencyVal" class="status-val">—</span>
+                        </div>
+                        <div id="progressContainer" class="progress-bar-container">
+                          <div id="progressBar" class="progress-bar"></div>
+                        </div>
+                        <div id="modelStatusText" style="margin-top: 6px; font-size: 11px; color: var(--yt-muted);">
+                          Waiting for model initialization...
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- Metrics (developer mode only) -->
-                <div id="metricsBar" class="metrics-bar" style="display: none;">
-                  <div class="metric-item"><span class="status-label">Embedding:</span><span id="metricEmbed" class="metric-value">0 ms</span></div>
-                  <div class="metric-item"><span class="status-label">Search (INT8 + BM25):</span><span id="metricSearch" class="metric-value">0 ms</span></div>
-                  <div class="metric-item"><span class="status-label">Total Time:</span><span id="metricTotal" class="metric-value">0 ms</span></div>
-                  <div class="metric-item"><span class="status-label">Query:</span><span id="metricQuery" style="color: #111;">—</span></div>
-                </div>
-
-                <!-- Results -->
-                <div id="resultsContainer" class="results-container">
-                  <div class="empty-state">
-                    Ready for search. Load status will indicate when the corpus and model are prepared.
+                <!-- Training-split view: replaces the results area, sidebar/navbar stay -->
+                <div class="yt-view" id="viewSplit" hidden>
+                  <div class="yt-split-card">
+                    <img class="yt-split-img" id="ytSplitImg" alt="" />
+                    <div class="yt-split-msg" id="ytSplitMsg"></div>
+                    <div class="yt-split-hint">
+                      Got text ideas or pictures? DM them on Discord — greatly appreciated.
+                    </div>
                   </div>
-                </div>
-
-                <!-- Pagination -->
-                <div id="paginationContainer" class="load-more-container" style="display: none;">
-                  <button id="loadMoreBtn">Load 5 More Results</button>
-                  <span id="resultsCountInfo" class="results-info"></span>
-                  <div id="scrollSentinel" style="height: 10px; width: 100%;"></div>
                 </div>
               </main>
             </div>
 
-            <!-- ===== Tab pages ===== -->
-            <div class="yt-page" id="ytPage" hidden>
-              <section class="yt-page-view" data-page="help" hidden>
-                <div class="yt-creator">
-                  <img class="yt-pfp" src="/assets/satella_pfp.jpeg" alt="Satella" />
-                  <h2 class="yt-creator-name">Satella</h2>
-                  <span class="yt-creator-handle">@streliziaa</span>
-                  <p class="yt-creator-bio">if you have any problems/idea or feedback please 🥺🥺 dm me on discord! @streliziaa</p>
-                </div>
-
-                <div class="yt-dev">
-                  <button id="debugToggleBtn" title="Toggle developer panel">&#9881; Debug</button>
-                  <div id="debugPanel" class="grid" style="display: none;">
-                    <div class="card">
-                      <div class="card-title">
-                        <span>Corpus Status</span>
-                        <span id="corpusStatusBadge" class="badge">Loading...</span>
-                      </div>
-                      <div class="status-row">
-                        <span class="status-label">Items Loaded:</span>
-                        <span id="numItemsVal" class="status-val">—</span>
-                      </div>
-                      <div class="status-row">
-                        <span class="status-label">Embedding Dimensions:</span>
-                        <span id="dimsVal" class="status-val">—</span>
-                      </div>
-                      <div class="status-row">
-                        <span class="status-label">Load / Parse Latency:</span>
-                        <span id="corpusLatencyVal" class="status-val">—</span>
-                      </div>
-                    </div>
-
-                    <div class="card">
-                      <div class="card-title">
-                        <span>Browser Neural Engine</span>
-                        <span id="modelStatusBadge" class="badge">Waiting...</span>
-                      </div>
-                      <div class="status-row">
-                        <span class="status-label">Active Model:</span>
-                        <span class="status-val">BAAI/bge-small-en-v1.5 (INT8 Q8)</span>
-                      </div>
-                      <div class="status-row">
-                        <span class="status-label">Device Backend:</span>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                          <select id="deviceSelector">
-                            <option value="wasm" selected>WASM / CPU (Fast &amp; Exact, ~12ms)</option>
-                            <option value="webgpu">WebGPU (FP32)</option>
-                          </select>
-                          <span id="activeDeviceVal" class="status-val">—</span>
-                        </div>
-                      </div>
-                      <div class="status-row">
-                        <span class="status-label">Model Init Latency:</span>
-                        <span id="modelInitLatencyVal" class="status-val">—</span>
-                      </div>
-                      <div id="progressContainer" class="progress-bar-container">
-                        <div id="progressBar" class="progress-bar"></div>
-                      </div>
-                      <div id="modelStatusText" style="margin-top: 6px; font-size: 11px; color: var(--yt-muted);">
-                        Waiting for model initialization...
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section class="yt-page-view" data-page="videos" hidden>
-                <div class="yt-placeholder">Nothing here yet.</div>
-              </section>
-              <section class="yt-page-view" data-page="channels" hidden>
-                <div class="yt-placeholder">Nothing here yet.</div>
-              </section>
-              <section class="yt-page-view" data-page="community" hidden>
-                <div class="yt-placeholder">Nothing here yet.</div>
-              </section>
-            </div>
-
-            <!-- ===== Training-split result overlay ===== -->
-            <div class="yt-split-overlay" id="ytSplitOverlay" hidden>
-              <div class="yt-split-card">
-                <img class="yt-split-img" id="ytSplitImg" alt="" />
-                <div class="yt-split-title" id="ytSplitTitle"></div>
-                <div class="yt-split-msg" id="ytSplitMsg"></div>
-              </div>
-            </div>
           </div>
         </div>
 
         <div class="monitor-chin" aria-hidden="true">
-          <span>KEENBEAN&nbsp;CRT&nbsp;&mdash;&nbsp;MODEL&nbsp;KB-2007</span>
+          <span>KEENBEAN&nbsp;CRT&nbsp;&mdash;&nbsp;MODEL&nbsp;KB-2007&nbsp;&middot;&nbsp;BETA</span>
           <span class="monitor-led"><i></i>PWR</span>
         </div>
       </div>

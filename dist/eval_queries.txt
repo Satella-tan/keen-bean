@@ -1,9 +1,0 @@
-# Keenan Finder - Benchmark Evaluation Queries
-# Add your test queries below (one per line). Lines starting with # are ignored.
-
-#This are lowkey BROAD questions which should NOT be the target of this kind of database looker
-How to manage big eating crashouts?
-Forearm training
-Best rep range
-Progression session to session
-Reps in reserve tips

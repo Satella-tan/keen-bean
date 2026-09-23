@@ -228,72 +228,103 @@ if (app && debugBtn) {
   syncDevMode();
 }
 
-/* ---------- Tab pages ---------- */
-const tabs = document.querySelectorAll<HTMLElement>('.yt-tab');
-const ytBody = document.querySelector<HTMLElement>('.yt-body');
-const ytPage = document.getElementById('ytPage');
-const pageViews = document.querySelectorAll<HTMLElement>('.yt-page-view');
-
-function setPage(name: string): void {
-  tabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.page === name));
-  const isHome = name === 'home';
-  if (ytBody) ytBody.hidden = !isHome;
-  if (ytPage) ytPage.hidden = isHome;
-  pageViews.forEach((view) => {
-    view.hidden = view.dataset.page !== name;
-  });
-}
-
-tabs.forEach((tab) => {
-  tab.addEventListener('click', () => setPage(tab.dataset.page ?? 'home'));
-});
-setPage('home');
-
-/* ---------- Training-split result overlay (auto-dismisses) ---------- */
-interface SplitResult {
-  title: string;
-  msg: string;
-  img: string;
-}
-
-// Placeholder content/images for now — replace when the real copy arrives.
-const SPLIT_RESULTS: Record<string, SplitResult> = {
-  correct: { title: 'Correct!', msg: 'This is a good way to split your training. (Content coming soon.)', img: '/assets/room.jpg' },
-  wrong: { title: 'Not quite.', msg: 'This split has some problems. (Content coming soon.)', img: '/assets/room.jpg' },
-  neither: { title: 'Neither.', msg: 'This one is neither better nor worse. (Content coming soon.)', img: '/assets/room.jpg' },
+/* ---------- Views inside the results area (sidebar + navbar always stay) ---------- */
+const views: Record<string, HTMLElement | null> = {
+  home: document.getElementById('viewHome'),
+  help: document.getElementById('viewHelp'),
+  split: document.getElementById('viewSplit'),
 };
 
-const splitOverlay = document.getElementById('ytSplitOverlay');
-const splitImg = document.getElementById('ytSplitImg') as HTMLImageElement | null;
-const splitTitle = document.getElementById('ytSplitTitle');
-const splitMsg = document.getElementById('ytSplitMsg');
 let splitTimer = 0;
 
-function dismissSplit(): void {
-  if (splitTimer) {
+function showView(name: 'home' | 'help' | 'split'): void {
+  if (name !== 'split' && splitTimer) {
     clearTimeout(splitTimer);
     splitTimer = 0;
   }
-  if (splitOverlay) splitOverlay.hidden = true;
+  Object.entries(views).forEach(([key, el]) => {
+    if (el) el.hidden = key !== name;
+  });
 }
 
+/* Home tab returns to results; other tabs are decorative only. */
+const homeTab = document.querySelector<HTMLElement>('.yt-tab[data-page="home"]');
+if (homeTab) homeTab.addEventListener('click', () => showView('home'));
+
+/* Logo -> home, focus the search box, never reload. */
+const logo = document.getElementById('ytLogo');
+if (logo) {
+  logo.addEventListener('click', () => {
+    showView('home');
+    const input = document.getElementById('queryInput') as HTMLInputElement | null;
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+
+/* Help (blue text beside Log In) -> creator + developer mode. */
+const helpLink = document.getElementById('ytHelpLink');
+if (helpLink) helpLink.addEventListener('click', () => showView('help'));
+
+/* Running a search should always bring the results view forward. */
+const searchBtnEl = document.getElementById('searchBtn');
+if (searchBtnEl) searchBtnEl.addEventListener('click', () => showView('home'));
+const queryInputEl = document.getElementById('queryInput');
+if (queryInputEl) {
+  queryInputEl.addEventListener('keydown', (event) => {
+    if ((event as KeyboardEvent).key === 'Enter') showView('home');
+  });
+}
+
+/* ---------- Training-split view (renders where the results go) ---------- */
+/*
+ * Randomised per open: one image from the matching folder + one message.
+ * To add variants: drop more images into src/assets/splits/<kind>/ and/or add
+ * strings to the msgs array below. Vite picks the images up automatically on
+ * the next build — no other code changes needed.
+ */
+const SPLIT_IMAGES: Record<string, string[]> = {
+  correct: Object.values(import.meta.glob('../assets/splits/correct/*', { eager: true, query: '?url', import: 'default' })),
+  wrong: Object.values(import.meta.glob('../assets/splits/wrong/*', { eager: true, query: '?url', import: 'default' })),
+  neither: Object.values(import.meta.glob('../assets/splits/neither/*', { eager: true, query: '?url', import: 'default' })),
+};
+
+const SPLIT_MESSAGES: Record<string, string[]> = {
+  correct: ['you are on a path of success young \u{1F431}\u200D\u{1F464} Keep it up'],
+  wrong: ['blud \u{1F62D}\u{1F62D}'],
+  neither: ['i respect it ; to each their own'],
+};
+
+function pickRandom<T>(items: T[]): T | undefined {
+  if (items.length === 0) return undefined;
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+const splitImg = document.getElementById('ytSplitImg') as HTMLImageElement | null;
+const splitMsg = document.getElementById('ytSplitMsg');
+
 function showSplit(result: string): void {
-  if (!splitOverlay) return;
-  const cfg = SPLIT_RESULTS[result] ?? SPLIT_RESULTS.neither;
-  const screen = document.querySelector<HTMLElement>('.monitor-screen');
-  if (screen) screen.scrollTop = 0;
+  const kind = SPLIT_IMAGES[result] ? result : 'neither';
+  const img = pickRandom(SPLIT_IMAGES[kind]);
+  const msg = pickRandom(SPLIT_MESSAGES[kind]) ?? '';
   if (splitImg) {
-    splitImg.src = cfg.img;
-    splitImg.alt = cfg.title;
+    if (img) {
+      splitImg.src = img;
+      splitImg.alt = kind;
+      splitImg.hidden = false;
+    } else {
+      splitImg.hidden = true;
+    }
   }
-  if (splitTitle) splitTitle.textContent = cfg.title;
-  if (splitMsg) splitMsg.textContent = cfg.msg;
-  splitOverlay.hidden = false;
-  splitTimer = window.setTimeout(dismissSplit, 2000);
+  if (splitMsg) splitMsg.textContent = msg;
+  showView('split');
+  splitTimer = window.setTimeout(() => showView('home'), 2000);
 }
 
 document.querySelectorAll<HTMLElement>('.yt-cats li[data-split]').forEach((item) => {
   item.addEventListener('click', () => showSplit(item.dataset.result ?? 'neither'));
 });
 
-if (splitOverlay) splitOverlay.addEventListener('click', dismissSplit);
+showView('home');
