@@ -6,7 +6,7 @@
   <title>KeenBean — Broadcast Yourself</title>
   <!-- Google Analytics: set the Measurement ID below (G-XXXXXXX) and GA loads automatically. -->
   <script>
-    window.KEENBEAN_GA_ID = "";
+    window.KEENBEAN_GA_ID = "G-GRLLBXHEXC";
     (function () {
       var id = window.KEENBEAN_GA_ID;
       if (!/^G-[A-Z0-9]+$/.test(id)) return;
@@ -704,6 +704,19 @@
       font: 14px var(--yt-font);
       color: var(--yt-muted);
     }
+    .empty-gif {
+      display: block;
+      width: min(260px, 60%);
+      margin: 0 auto 16px;
+      border: 1px solid var(--yt-border-soft);
+      border-radius: 4px;
+    }
+    .empty-intro-text {
+      max-width: 520px;
+      margin: 0 auto;
+      font: 14px/1.6 var(--yt-font);
+      color: #333;
+    }
 
     /* ---- Warnings / cliff divider ---- */
     .score-warning {
@@ -947,7 +960,7 @@
                   <span class="yt-tab">Community</span>
                 </nav>
                 <div class="yt-search">
-                  <input type="text" id="queryInput" placeholder="Search the archive (e.g. 'carb swishing', 'moment arm length in lateral raises')" autofocus />
+                  <input type="text" id="queryInput" placeholder="Search the archive (e.g. 'carb swishing', 'moment arm length in lateral raises' — avoid fluff)" autofocus />
                   <span class="yt-cat" aria-hidden="true">Videos &#9662;</span>
                   <button id="searchBtn" disabled>Search</button>
                 </div>
@@ -970,7 +983,7 @@
                 <div class="yt-side-head">Training splits</div>
                 <ul class="yt-cats">
                   <li data-split="PPL" data-result="wrong">PPL</li>
-                  <li data-split="U/L/R" data-result="neither">U/L/R</li>
+                  <li data-split="U/L" data-result="neither">U/L</li>
                   <li data-split="FBEOD" data-result="correct">FBEOD</li>
                   <li data-split="Arnold" data-result="wrong">Arnold</li>
                   <li data-split="Bro Split" data-result="wrong">Bro Split</li>
@@ -1013,8 +1026,12 @@
 
                   <!-- Results -->
                   <div id="resultsContainer" class="results-container">
-                    <div class="empty-state">
-                      Ready for search. Load status will indicate when the corpus and model are prepared.
+                    <div class="empty-state" data-intro="1">
+                      <img class="empty-gif" src="/assets/dreaming.gif" alt="" />
+                      <p class="empty-intro-text">
+                        KeenBean is a beta database for searching what Keenan has said about a topic.
+                        Type a query above to look through the transcripts.
+                      </p>
                     </div>
                   </div>
 
@@ -1032,8 +1049,8 @@
                     <img class="yt-pfp" src="/assets/satella_pfp.jpeg" alt="Satella — creator of KeenBean" />
                     <div class="yt-creator-meta">
                       <h2 class="yt-creator-name">Satella</h2>
-                      <span class="yt-creator-role">Creator of KeenBean</span>
-                      <p class="yt-creator-bio">if you have any problems/idea or feedback please 🥺🥺 dm me on discord! @streliziaa</p>
+                      <span class="yt-creator-role">Creator of KeenBean.site</span>
+                      <p class="yt-creator-bio">if you have any problems, ideas or feedback please dm me on discord! @streliziaa</p>
                     </div>
                   </div>
 
@@ -1110,7 +1127,7 @@
         </div>
 
         <div class="monitor-chin" aria-hidden="true">
-          <span>KEENBEAN&nbsp;CRT&nbsp;&mdash;&nbsp;MODEL&nbsp;KB-2007&nbsp;&middot;&nbsp;BETA</span>
+          <span>KEENBEAN&nbsp;monitor&nbsp;1&nbsp;-&nbsp;BETA</span>
           <span class="monitor-led"><i></i>PWR</span>
         </div>
       </div>

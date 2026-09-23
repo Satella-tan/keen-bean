@@ -236,6 +236,19 @@ const views: Record<string, HTMLElement | null> = {
 };
 
 let splitTimer = 0;
+let isFirstHome = true;
+
+/* The intro blurb + gif shows only on the first load; later arrivals at Home
+   get the plain "Ready to search." state. main.ts replaces the whole container
+   on search, so this only touches the untouched intro element. */
+function showStandardEmptyState(): void {
+  if (!resultsContainer) return;
+  const intro = resultsContainer.querySelector<HTMLElement>('.empty-state[data-intro="1"]');
+  if (intro) {
+    intro.removeAttribute('data-intro');
+    intro.textContent = 'Ready to search.';
+  }
+}
 
 function showView(name: 'home' | 'help' | 'split'): void {
   if (name !== 'split' && splitTimer) {
@@ -245,6 +258,10 @@ function showView(name: 'home' | 'help' | 'split'): void {
   Object.entries(views).forEach(([key, el]) => {
     if (el) el.hidden = key !== name;
   });
+  if (name === 'home') {
+    if (isFirstHome) isFirstHome = false;
+    else showStandardEmptyState();
+  }
 }
 
 /* Home tab returns to results; other tabs are decorative only. */
