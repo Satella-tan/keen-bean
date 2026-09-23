@@ -308,6 +308,48 @@ const SPLIT_IMAGES: Record<string, string[]> = {
   neither: Object.values(import.meta.glob('../assets/splits/neither/*', { eager: true, query: '?url', import: 'default' })),
 };
 
+/* Warm the split images once the engine is ready so opening a split never
+   shifts the layout. Deferred to an idle callback so it cannot compete with
+   the corpus/model download or the first paint. The image box also has a
+   fixed height in CSS, so there is no layout shift even before this runs. */
+type IdleWindow = Window & {
+  requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+};
+
+function preloadSplitImages(): void {
+  const urls = new Set<string>();
+  Object.values(SPLIT_IMAGES).forEach((list) => list.forEach((url) => urls.add(url)));
+  urls.forEach((url) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+  });
+}
+
+function onIdle(cb: () => void): void {
+  const w = window as IdleWindow;
+  if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(cb, { timeout: 3000 });
+  else window.setTimeout(cb, 1500);
+}
+
+const engineBadge = document.getElementById('engineBadge');
+let splitImagesWarmed = false;
+
+function warmSplitImagesOnce(): void {
+  if (splitImagesWarmed) return;
+  if (engineBadge && !engineBadge.classList.contains('active')) return;
+  splitImagesWarmed = true;
+  onIdle(preloadSplitImages);
+}
+
+if (engineBadge) {
+  new MutationObserver(warmSplitImagesOnce).observe(engineBadge, {
+    attributes: true,
+    attributeFilter: ['class'],
+  });
+}
+window.addEventListener('load', () => window.setTimeout(warmSplitImagesOnce, 8000));
+
 const SPLIT_MESSAGES: Record<string, string[]> = {
   correct: ['you are on a path of success young \u{1F431}\u200D\u{1F464} Keep it up'],
   wrong: ['blud \u{1F62D}\u{1F62D}'],

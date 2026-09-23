@@ -3,7 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KeenBean — Broadcast Yourself</title>
+  <title>KeenBean — Search what Keenan has said</title>
+  <meta name="description" content="KeenBean is a beta database for searching what Keenan has said about a topic across hundreds of hours of video transcripts. Keyword + semantic search, running entirely in your browser." />
+
+  <!-- Icons (animated GIF first, PNG/ICO fallbacks) -->
+  <link rel="icon" type="image/gif" href="/favicon_io/icon.gif" />
+  <link rel="alternate icon" type="image/x-icon" href="/favicon_io/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png" />
+  <link rel="mask-icon" href="/favicon_io/android-chrome-512x512.png" color="#cc0000" />
+  <meta name="theme-color" content="#cc0000" />
+
+  <!-- Social / link previews -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="KeenBean" />
+  <meta property="og:title" content="KeenBean — Search what Keenan has said" />
+  <meta property="og:description" content="A beta database for searching what Keenan has said about a topic, across hundreds of hours of video transcripts." />
+  <meta property="og:url" content="https://keenbean.site/" />
+  <meta property="og:image" content="https://keenbean.site/favicon_io/android-chrome-512x512.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="KeenBean — Search what Keenan has said" />
+  <meta name="twitter:description" content="A beta database for searching what Keenan has said about a topic, across hundreds of hours of video transcripts." />
+  <meta name="twitter:image" content="https://keenbean.site/favicon_io/android-chrome-512x512.png" />
+  <link rel="canonical" href="https://keenbean.site/" />
+
   <!-- Google Analytics: set the Measurement ID below (G-XXXXXXX) and GA loads automatically. -->
   <script>
     window.KEENBEAN_GA_ID = "G-GRLLBXHEXC";
@@ -334,6 +358,52 @@
       border: 1px solid var(--yt-border);
       border-left: none;
       white-space: nowrap;
+    }
+
+    /* "Tips ?" query-help control beside the search box */
+    .yt-query-help {
+      position: relative;
+      border-radius: 0;
+      cursor: help;
+    }
+    .yt-qmark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      font: 700 10px var(--yt-font);
+      color: #fff;
+      background: var(--yt-blue-dark);
+      border-radius: 50%;
+    }
+    .yt-tip {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 280px;
+      padding: 10px 12px;
+      text-align: left;
+      white-space: normal;
+      font: 12px/1.5 var(--yt-font);
+      color: #111;
+      background: #fff;
+      border: 1px solid var(--yt-border);
+      border-radius: 4px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      z-index: 50;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity 0.12s, transform 0.12s;
+      pointer-events: none;
+    }
+    .yt-tip b { color: var(--yt-link); }
+    .yt-query-help:hover .yt-tip,
+    .yt-query-help:focus-visible .yt-tip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
     }
     #searchBtn {
       padding: 0 18px;
@@ -848,7 +918,16 @@
       border-radius: 4px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.16);
     }
-    .yt-split-img { display: block; width: min(260px, 72%); margin: 0 auto 14px; border-radius: 4px; }
+    .yt-split-img {
+      display: block;
+      width: min(320px, 80%);
+      height: 200px;
+      object-fit: contain;
+      margin: 0 auto 14px;
+      border-radius: 4px;
+      background: #f0f2f5;
+      border: 1px solid var(--yt-border-soft);
+    }
     .yt-split-msg { margin-top: 8px; font: 700 16px/1.5 var(--yt-font); color: #111; }
     .yt-split-hint {
       margin-top: 16px;
@@ -961,7 +1040,15 @@
                 </nav>
                 <div class="yt-search">
                   <input type="text" id="queryInput" placeholder="Search the archive (e.g. 'carb swishing', 'moment arm length in lateral raises' — avoid fluff)" autofocus />
-                  <span class="yt-cat" aria-hidden="true">Videos &#9662;</span>
+                  <button type="button" class="yt-cat yt-query-help" aria-label="How to search">
+                    Tips
+                    <span class="yt-qmark" aria-hidden="true">?</span>
+                    <span class="yt-tip" role="tooltip">
+                      KeenBean searches the words in Keenan's video transcripts — it is not an AI and
+                      won't guess what you mean. Keep it short and specific, and avoid filler words.
+                      Search something like <b>"carb swishing"</b> or <b>"moment arm lateral raise"</b>.
+                    </span>
+                  </button>
                   <button id="searchBtn" disabled>Search</button>
                 </div>
               </div>
@@ -1009,7 +1096,7 @@
                     <div class="yt-results-right">
                       <span class="yt-sort" aria-hidden="true">Sort by: <b>Relevance</b> &#9662;</span>
                       <div class="mode-selector" role="group" aria-label="Search mode">
-                        <button class="mode-btn active" data-mode="hybrid">Hybrid (70/30)</button>
+                        <button class="mode-btn active" data-mode="hybrid">Hybrid (Recommended)</button>
                         <button class="mode-btn" data-mode="semantic">Semantic Only</button>
                         <button class="mode-btn" data-mode="keyword">Keyword Only (BM25)</button>
                       </div>
