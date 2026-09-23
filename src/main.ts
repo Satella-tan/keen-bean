@@ -344,7 +344,7 @@ function renderNextBatch(): void {
       const divider = document.createElement('div');
       divider.className = 'score-warning cliff-divider';
       divider.innerHTML = `
-        <span class="warn-icon">📉</span>
+        <span class="warn-icon"><img src="assets/caution-icon.svg" alt="warning" width="16" height="16"></span>
         <div class="warn-text">
           <strong>Score dropoff detected (${topScore} → ${cliffStr})</strong> — The ${weakResults.length} dimmed result${weakResults.length > 1 ? 's' : ''} below this point have significantly lower confidence and may be less relevant.
         </div>
