@@ -3,693 +3,1093 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Keenan Finder — Client-Side Search Engine Testbed</title>
+  <title>KeenBean — Broadcast Yourself</title>
   <style>
     :root {
-      --bg: #0f1117;
-      --card-bg: #161b22;
-      --border: #30363d;
-      --text: #c9d1d9;
-      --text-muted: #8b949e;
-      --heading: #f0f6fc;
-      --accent: #58a6ff;
-      --accent-green: #3fb950;
-      --accent-purple: #bc8cff;
-      --accent-orange: #d29922;
-      --accent-red: #f85149;
-      --font: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      /* Old-YouTube (2007) chrome */
+      --yt-page: #e9ebee;
+      --yt-panel: #ffffff;
+      --yt-chrome-hi: #eef1f5;
+      --yt-chrome-lo: #cdd3dc;
+      --yt-border: #8f97a3;
+      --yt-border-soft: #c7ccd4;
+      --yt-blue: #6d84b4;
+      --yt-blue-dark: #4a5f8f;
+      --yt-link: #0033cc;
+      --yt-link-hover: #cc0000;
+      --yt-text: #1a1a1a;
+      --yt-muted: #555b66;
+      --yt-red: #cc0000;
+
+      --yt-font: Arial, Helvetica, Verdana, sans-serif;
+      --yt-logo: "Bahnschrift", "Arial Narrow", Arial, sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+      /* Low-poly monitor plastics */
+      --bezel-hi: #3a3f47;
+      --bezel: #26292f;
+      --bezel-lo: #141619;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
 
     body {
-      background-color: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 13px;
-      line-height: 1.5;
-      padding: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
+      font-family: var(--yt-font);
+      color: var(--yt-text);
+      background: #0a0b0d;
+      overflow: hidden;
     }
 
-    h1, h2, h3 {
-      color: var(--heading);
-      font-weight: 600;
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ============ Low-poly room (persistent backdrop) ============ */
+    .room {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: #0b0d10 url("/assets/room.jpg") center 42% / cover no-repeat;
+      filter: brightness(0.6) saturate(0.9) contrast(1.02);
+    }
+    .room::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 44%, rgba(0, 0, 0, 0.05) 30%, rgba(0, 0, 0, 0.6) 85%, rgba(0, 0, 0, 0.86) 100%);
     }
 
-    header {
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    header h1 {
-      font-size: 20px;
-      margin-bottom: 6px;
+    /* ============ Monitor in the room ============ */
+    .world {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
       display: flex;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
+      padding: 2.4vh 2vw;
+      perspective: 2000px;
+      perspective-origin: 50% 45%;
     }
 
-    .badge {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-weight: normal;
-      background: #21262d;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-    }
-    .badge.active {
-      background: rgba(63, 185, 80, 0.15);
-      border-color: var(--accent-green);
-      color: var(--accent-green);
-    }
-    .badge.warning {
-      background: rgba(210, 153, 34, 0.15);
-      border-color: var(--accent-orange);
-      color: var(--accent-orange);
+    .monitor {
+      position: relative;
+      width: min(1340px, 90vw);
+      height: min(840px, 86vh);
+      display: flex;
+      flex-direction: column;
+      transform-style: preserve-3d;
+      transform: rotateY(-8deg) rotateX(1.8deg);
     }
 
+    /* Right-hand depth face — this is the "side of the monitor" that stays visible */
+    .monitor-side {
+      position: absolute;
+      top: 14px;
+      bottom: 14px;
+      right: -34px;
+      width: 34px;
+      transform: rotateY(90deg);
+      transform-origin: left center;
+      background: linear-gradient(90deg, #0e1013, #2b2f36);
+      border-radius: 0 4px 4px 0;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .monitor-side-b {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: -20px;
+      height: 20px;
+      transform: rotateX(-90deg);
+      transform-origin: top center;
+      background: linear-gradient(180deg, #0f1114, #23272d);
+      border-radius: 0 0 4px 4px;
+    }
+
+    .monitor-frame {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      padding: 22px 22px 46px;
+      background: linear-gradient(155deg, #3d424b, #1b1e23 62%);
+      border-radius: 14px;
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.14),
+        inset 0 -3px 0 rgba(0, 0, 0, 0.6),
+        0 0 0 1px #0c0e11,
+        0 34px 56px rgba(0, 0, 0, 0.6);
+    }
+    /* glass sheen over the screen (does not scroll with content) */
+    .monitor-frame::after {
+      content: "";
+      position: absolute;
+      inset: 22px 22px 46px;
+      border-radius: 8px;
+      pointer-events: none;
+      background: linear-gradient(115deg, rgba(255, 255, 255, 0.13) 0 9%, rgba(255, 255, 255, 0) 22%);
+    }
+
+    .monitor-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: var(--yt-page);
+      border-radius: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      box-shadow: inset 0 0 0 3px #0a0b0d, inset 0 0 34px rgba(0, 0, 0, 0.45);
+      scrollbar-color: #9aa1ad #dfe3e8;
+    }
+
+    .monitor-chin {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 0;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #8b93a0;
+      font: 600 12px var(--yt-logo);
+      letter-spacing: 1.4px;
+    }
+    .monitor-led {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font: 500 10px var(--mono);
+      letter-spacing: 1px;
+      color: #6d7580;
+    }
+    .monitor-led i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #35b6ff;
+      box-shadow: 0 0 8px #35b6ff;
+    }
+
+    .monitor-neck {
+      width: 132px;
+      height: 20px;
+      margin: 0 auto;
+      background: linear-gradient(90deg, #1b1e23, #3a3f47, #1b1e23);
+    }
+    .monitor-base {
+      width: 320px;
+      height: 14px;
+      margin: 0 auto;
+      border-radius: 0 0 10px 10px;
+      background: linear-gradient(180deg, #3a3f47, #15171b);
+      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.65);
+    }
+
+    /* ============ App (the old-YouTube site inside the screen) ============ */
+    .app { min-height: 100%; }
+
+    /* ---- Top bar ---- */
+    .yt-top {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      padding: 9px 14px 11px;
+      background: linear-gradient(180deg, #eef1f5, #cdd3dc);
+      border-bottom: 1px solid var(--yt-border);
+    }
+
+    /* Decorative chrome must not be text-selectable */
+    .yt-tabs, .yt-account, .yt-status, .yt-sidebar, .yt-sort, .mode-selector, .yt-cat {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .yt-logo {
+      display: flex;
+      flex-direction: column;
+      text-decoration: none;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .yt-logo-line {
+      display: flex;
+      align-items: stretch;
+      font-family: var(--yt-logo);
+      font-weight: 700;
+      font-size: 29px;
+      letter-spacing: 0.3px;
+    }
+    .yt-logo-word {
+      display: flex;
+      align-items: center;
+      background: linear-gradient(160deg, #565d68 0 46%, #23262b 46% 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .yt-logo-badge {
+      display: flex;
+      align-items: center;
+      margin-left: 2px;
+      padding: 0 12px 3px;
+      color: #fff;
+      background: linear-gradient(135deg, #ff3b2f 0 38%, #cc0000 38% 70%, #8f0000 70% 100%);
+      clip-path: polygon(8% 0, 100% 0, 100% 74%, 92% 100%, 0 100%, 0 26%);
+    }
+    .yt-logo-tag {
+      margin-top: 3px;
+      font: 400 11px var(--yt-font);
+      color: var(--yt-muted);
+      letter-spacing: 0.4px;
+    }
+
+    .yt-top-center {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .yt-tabs { display: flex; gap: 3px; }
+    .yt-tab {
+      padding: 4px 13px;
+      font: 600 12px var(--yt-font);
+      color: var(--yt-link);
+      background: linear-gradient(180deg, #f6f8fb, #d5dae2);
+      border: 1px solid var(--yt-border);
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+    }
+    .yt-tab:hover { background: #fff; }
+    .yt-tab.active {
+      background: #fff;
+      color: #111;
+      box-shadow: inset 0 2px 0 var(--yt-blue);
+    }
+
+    .yt-search { display: flex; align-items: stretch; }
+    .yt-search input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 9px;
+      font: 14px var(--yt-font);
+      color: #111;
+      background: #fff;
+      border: 1px solid var(--yt-border);
+      outline: none;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+    .yt-search input[type="text"]:focus {
+      border-color: var(--yt-blue-dark);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(74, 95, 143, 0.35);
+    }
+    .yt-cat {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      font: 12px var(--yt-font);
+      color: #333;
+      background: linear-gradient(180deg, #f6f8fb, #ccd2db);
+      border: 1px solid var(--yt-border);
+      border-left: none;
+      white-space: nowrap;
+    }
+    #searchBtn {
+      padding: 0 18px;
+      min-height: 34px;
+      font: 600 12px var(--yt-font);
+      color: #1a1a1a;
+      background: linear-gradient(180deg, #f6f8fb, #c3cad4);
+      border: 1px solid var(--yt-border);
+      border-left: none;
+      border-radius: 0 3px 3px 0;
+      box-shadow: none;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    #searchBtn:hover:not(:disabled) { background: linear-gradient(180deg, #fff, #d5dae2); }
+    #searchBtn:disabled { color: #9aa1ad; background: #dfe3e8; cursor: not-allowed; }
+
+    .yt-account {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      font: 12px var(--yt-font);
+      color: var(--yt-link);
+    }
+    .yt-account .sep { color: #9aa1ad; }
+
+    .yt-status { display: flex; gap: 6px; flex-shrink: 0; }
+
+    /* ---- Body: sidebar + main ---- */
+    .yt-body {
+      display: grid;
+      grid-template-columns: 226px minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .yt-sidebar {
+      background: #f2f4f7;
+      border-right: 1px solid var(--yt-border-soft);
+      min-height: 100%;
+      padding-bottom: 24px;
+    }
+    .yt-side-head {
+      padding: 6px 12px;
+      font: 600 13px var(--yt-font);
+      color: #fff;
+      background: linear-gradient(180deg, #7d92bd, #5d76a8);
+    }
+    .yt-cats, .yt-filters { list-style: none; padding: 6px 0; }
+    .yt-cats li, .yt-filters li {
+      padding: 3px 12px;
+      font: 13px var(--yt-font);
+      color: var(--yt-link);
+    }
+    .yt-cats li[data-split] { cursor: pointer; }
+    .yt-cats li[data-split]:hover { background: #dbe4f5; text-decoration: underline; }
+    .yt-filters li { display: flex; justify-content: space-between; color: #333; }
+    .yt-filters li::after { content: "\25BE"; color: #6d7580; font-size: 10px; }
+
+    .yt-main {
+      min-width: 0;
+      padding: 0 16px 30px;
+      background: var(--yt-page);
+    }
+
+    .yt-results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 2px 9px;
+      border-bottom: 1px solid var(--yt-border-soft);
+      font: 13px var(--yt-font);
+      color: #333;
+    }
+    .yt-results-count { font-weight: 600; color: #111; }
+    .yt-results-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .yt-sort { color: #333; }
+    .yt-sort b { color: var(--yt-link); font-weight: 600; }
+
+    .mode-selector {
+      display: inline-flex;
+      border: 1px solid var(--yt-border);
+      border-radius: 3px;
+      overflow: hidden;
+      background: #dfe3e8;
+    }
+    .mode-btn {
+      padding: 5px 11px;
+      min-height: 0;
+      font: 600 11px var(--yt-font);
+      color: #333;
+      background: linear-gradient(180deg, #f6f8fb, #ccd2db);
+      border: none;
+      border-right: 1px solid var(--yt-border);
+      border-radius: 0;
+      box-shadow: none;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .mode-btn:last-child { border-right: none; }
+    .mode-btn:hover { color: #111; background: linear-gradient(180deg, #fff, #d5dae2); }
+    .mode-btn.active {
+      color: #fff;
+      background: linear-gradient(180deg, #7d92bd, #5d76a8);
+    }
+
+    /* ---- Debug panel (light retro) ---- */
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 20px;
+      gap: 12px;
+      margin: 14px 0;
     }
-
-    @media (max-width: 800px) {
-      .grid { grid-template-columns: 1fr; }
-    }
-
     .card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 16px;
+      background: var(--yt-panel);
+      border: 1px solid var(--yt-border);
+      border-radius: 3px;
+      box-shadow: 0 1px 0 #fff inset, 0 1px 3px rgba(0, 0, 0, 0.15);
+      padding: 12px 14px;
     }
-
     .card-title {
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
+      margin: -12px -14px 10px;
+      padding: 5px 10px;
+      font: 600 12px var(--yt-font);
+      color: #fff;
+      background: linear-gradient(180deg, #7d92bd, #5d76a8);
     }
-
     .status-row {
       display: flex;
       justify-content: space-between;
       padding: 4px 0;
-      border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+      border-bottom: 1px solid #e2e5ea;
+      font: 12px var(--yt-font);
     }
-    .status-row:last-child {
-      border-bottom: none;
+    .status-row:last-child { border-bottom: none; }
+    .status-label { color: var(--yt-muted); }
+    .status-val { color: #111; font-family: var(--mono); font-weight: 600; }
+
+    .badge {
+      padding: 2px 7px;
+      font: 600 10px var(--mono);
+      color: #444;
+      background: #e2e5ea;
+      border: 1px solid #b9bfc8;
+      border-radius: 3px;
+      white-space: nowrap;
     }
-    .status-label {
-      color: var(--text-muted);
-    }
-    .status-val {
-      color: var(--heading);
-      font-weight: 500;
-    }
+    .badge.active { color: #14532d; background: #d7f0dd; border-color: #7bbf8f; }
+    .badge.warning { color: #7a4a00; background: #fbeccd; border-color: #d9a94a; }
 
     .progress-bar-container {
-      margin-top: 10px;
-      background: #21262d;
-      border-radius: 4px;
+      margin-top: 8px;
       height: 8px;
+      background: #d5d9df;
+      border: 1px solid #b9bfc8;
+      border-radius: 2px;
       overflow: hidden;
       display: none;
     }
     .progress-bar {
       height: 100%;
-      background: var(--accent);
       width: 0%;
+      background: linear-gradient(90deg, var(--yt-blue-dark), var(--yt-blue));
       transition: width 0.2s;
     }
 
-    .controls-panel {
-      margin-bottom: 20px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 16px;
+    select {
+      padding: 3px 7px;
+      font: 12px var(--yt-font);
+      color: #111;
+      background: #fff;
+      border: 1px solid var(--yt-border);
+      border-radius: 2px;
     }
 
-    .search-row {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px 14px;
-      color: var(--heading);
-      font-family: inherit;
-      font-size: 14px;
-      outline: none;
-    }
-    input[type="text"]:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
-    }
-
-    button {
-      background: #238636;
-      color: white;
-      border: 1px solid rgba(240, 246, 252, 0.1);
-      border-radius: 6px;
-      padding: 10px 20px;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    button:hover:not(:disabled) {
-      background: #2ea043;
-    }
-    button:disabled {
-      background: #21262d;
-      color: var(--text-muted);
-      cursor: not-allowed;
-      border-color: var(--border);
-    }
-
-    .secondary-btn {
-      background: #21262d;
-      color: var(--heading);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-    .secondary-btn:hover:not(:disabled) {
-      background: #30363d;
-    }
-
-    .options-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .mode-selector {
-      display: inline-flex;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 2px;
-    }
-    .mode-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 4px 10px;
-      font-size: 12px;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .mode-btn.active {
-      background: #21262d;
-      color: var(--accent);
-      font-weight: 600;
-    }
-
+    /* ---- Metrics strip ---- */
     .metrics-bar {
-      display: flex;
-      gap: 20px;
-      padding: 10px 14px;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      margin-bottom: 20px;
-      font-size: 12px;
+      display: none !important;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin: 12px 0;
+      padding: 7px 12px;
+      font: 11px var(--mono);
+      background: #f2f4f7;
+      border: 1px solid var(--yt-border-soft);
+      border-radius: 3px;
     }
-    .metric-item {
-      display: flex;
-      gap: 6px;
-    }
-    .metric-value {
-      color: var(--accent-green);
-      font-weight: 600;
-    }
+    .app.dev-mode .metrics-bar { display: flex !important; }
+    .metric-item { display: flex; gap: 6px; }
+    .metric-value { color: #14532d; font-weight: 700; }
 
-    .results-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+    /* ---- Results: 2007 YouTube rows ---- */
+    .results-container { display: flex; flex-direction: column; }
 
-    /* Result Card Layout */
     .result-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr) 156px;
+      column-gap: 14px;
+      row-gap: 3px;
+      padding: 13px 6px;
+      border-bottom: 1px solid var(--yt-border-soft);
+      cursor: default;
     }
-    .result-card:hover {
-      border-color: rgba(88, 166, 255, 0.4);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-    }
+    .result-card:hover { background: #dbe4f5; }
+    .result-card.low-relevance { opacity: 0.55; }
+    .result-card.low-relevance:hover { opacity: 0.9; }
 
-    .result-top-bar {
+    /* Flatten wrappers so the generated children join the row grid */
+    .result-top-bar, .result-body { display: contents; }
+
+    .yt-box {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+      align-self: start;
+      display: block;
+      position: relative;
+      text-decoration: none;
+      color: inherit;
+    }
+    .yt-thumb-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #000;
+      border: 1px solid #6d7580;
+      overflow: hidden;
+    }
+    .yt-thumb-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .yt-play-overlay { display: none; }
+    .yt-time-badge {
+      position: absolute;
+      right: 3px;
+      bottom: 3px;
+      padding: 1px 4px;
+      font: 700 11px var(--yt-font);
+      color: #fff;
+      background: rgba(0, 0, 0, 0.82);
+      border-radius: 2px;
+    }
+    .yt-caption {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+      gap: 6px;
+      padding: 4px 1px 0;
+      font: 11px var(--yt-font);
+      color: var(--yt-muted);
     }
+    .yt-caption .yt-caption-label { color: var(--yt-link); }
 
     .result-title-group {
+      grid-column: 2;
+      grid-row: 1;
       display: flex;
-      align-items: center;
-      gap: 8px;
+      align-items: baseline;
       flex-wrap: wrap;
+      gap: 8px;
+      min-width: 0;
     }
-
-    .result-rank {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(88, 166, 255, 0.1);
-      padding: 2px 8px;
-      border-radius: 4px;
-      border: 1px solid rgba(88, 166, 255, 0.2);
-    }
-
+    .result-rank { display: none; }
     .result-video-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--heading);
+      font: 700 16px var(--yt-font);
+      color: var(--yt-link);
+      line-height: 1.25;
     }
+    .result-card:hover .result-video-title { color: var(--yt-link-hover); text-decoration: underline; }
 
     .topic-badge {
-      background: rgba(188, 140, 255, 0.15);
-      border: 1px solid rgba(188, 140, 255, 0.35);
-      color: var(--accent-purple);
-      font-weight: 500;
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 12px;
-      max-width: 480px;
+      font: 12px var(--yt-font);
+      color: var(--yt-blue-dark);
+      background: none;
+      border: none;
+      padding: 0;
+      max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .result-title-group .badge {
+      font-size: 10px;
+      color: #444;
+      background: #e2e5ea;
+      border: 1px solid #b9bfc8;
+    }
 
     .result-scores {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .score-total {
-      color: var(--accent-green);
-      font-weight: 600;
-      font-size: 12px;
-    }
-
-    /* Card Body: YouTube Box + Context */
-    .result-body {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      gap: 16px;
-      align-items: start;
-    }
-
-    @media (max-width: 768px) {
-      .result-body {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    /* YouTube Box */
-    .yt-box {
+      grid-column: 3;
+      grid-row: 1 / span 2;
       display: flex;
       flex-direction: column;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.15s, border-color 0.15s;
+      align-items: flex-end;
+      gap: 4px;
+      font: 11px var(--yt-font);
+      color: var(--yt-muted);
+      text-align: right;
     }
-    .yt-box:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
+    .score-total { color: #14532d; font-weight: 700; }
+    .yt-stars { font-size: 13px; letter-spacing: 1px; color: #cc0000; }
 
-    .yt-thumb-container {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      background: #05070a;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .yt-thumb-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .yt-play-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 38px;
-      height: 38px;
-      background: rgba(0, 0, 0, 0.7);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #ffffff;
-      transition: background 0.15s, transform 0.15s;
-    }
-    .yt-box:hover .yt-play-overlay {
-      background: #ff0000;
-      transform: translate(-50%, -50%) scale(1.1);
-    }
-
-    .yt-time-badge {
-      position: absolute;
-      bottom: 6px;
-      right: 6px;
-      background: rgba(0, 0, 0, 0.85);
-      color: #f0f6fc;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 3px;
-      letter-spacing: 0.3px;
-    }
-
-    .yt-caption {
-      padding: 8px 10px;
-      font-size: 11px;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #161b22;
-      border-top: 1px solid var(--border);
-      font-weight: 500;
-    }
-    .yt-box:hover .yt-caption {
-      text-decoration: underline;
-    }
-
-    /* Transcript & Context Formatting */
+    /* Only the matched child chunk shows inline; full context floats on hover */
     .transcript-container {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 12px 14px;
-      line-height: 1.6;
-      font-size: 13px;
+      grid-column: 2;
+      grid-row: 2;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font: 13px var(--yt-font);
+      color: #333;
+      line-height: 1.45;
+      min-width: 0;
     }
-
-    .context-sentence {
-      color: #7d8590;
-      padding: 2px 0;
+    .transcript-container .context-sentence { display: none; }
+    .transcript-container .match-line {
+      display: block;
+      margin: 0;
+      padding: 0;
+      background: none;
+      border: none;
+      color: #333;
+      font-weight: 400;
     }
+    .transcript-container .match-indicator { display: none; }
+    .transcript-container .match-text { color: #333; }
 
-    .match-line {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      color: var(--heading);
-      background: rgba(88, 166, 255, 0.08);
-      padding: 4px 8px;
-      border-radius: 4px;
-      border-left: 3px solid var(--accent);
-      margin: 3px 0;
-      font-weight: 500;
-    }
-
-    .match-indicator {
-      color: var(--accent);
-      font-weight: 700;
-      user-select: none;
-      flex-shrink: 0;
-    }
-
-    .match-text {
-      color: #f0f6fc;
-    }
-
-    /* Load More / Infinite Scroll */
+    /* ---- Pagination ---- */
     .load-more-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      padding: 24px 0 16px;
+      padding: 18px 0 8px;
     }
-
-    .load-more-btn {
-      background: #21262d;
-      color: var(--heading);
-      border: 1px solid var(--border);
-      padding: 10px 24px;
-      font-size: 13px;
-      font-weight: 600;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+    #loadMoreBtn {
+      padding: 8px 22px;
+      font: 600 12px var(--yt-font);
+      color: #1a1a1a;
+      background: linear-gradient(180deg, #f6f8fb, #c3cad4);
+      border: 1px solid var(--yt-border);
+      border-radius: 3px;
+      box-shadow: none;
+      text-transform: none;
+      letter-spacing: 0;
     }
-    .load-more-btn:hover {
-      background: #30363d;
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .results-info {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    select {
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      color: var(--heading);
-      padding: 4px 8px;
-      font-family: inherit;
-      font-size: 12px;
-    }
+    #loadMoreBtn:hover { background: linear-gradient(180deg, #fff, #d5dae2); color: #111; }
+    .results-info { font: 11px var(--mono); color: var(--yt-muted); }
 
     .empty-state {
+      padding: 44px 20px;
       text-align: center;
-      padding: 40px 20px;
-      color: var(--text-muted);
+      font: 14px var(--yt-font);
+      color: var(--yt-muted);
     }
 
-    /* Score quality warning banner */
+    /* ---- Warnings / cliff divider ---- */
     .score-warning {
       display: flex;
       align-items: flex-start;
       gap: 10px;
-      background: rgba(210, 153, 34, 0.08);
-      border: 1px solid rgba(210, 153, 34, 0.35);
-      border-radius: 6px;
-      padding: 12px 14px;
-      font-size: 12px;
-      color: var(--accent-orange);
-      margin-bottom: 4px;
+      margin: 12px 0 4px;
+      padding: 10px 12px;
+      font: 12px var(--yt-font);
+      color: #7a4a00;
+      background: #fbeccd;
+      border: 1px solid #d9a94a;
+      border-radius: 3px;
     }
-    .score-warning .warn-icon {
-      flex-shrink: 0;
-      font-size: 15px;
-      line-height: 1.4;
+    .score-warning .warn-icon { flex-shrink: 0; }
+    .score-warning strong { color: #111; }
+    .score-warning.cliff-divider { border-style: dashed; }
+
+    /* ============ Floating context window ============ */
+    .yt-float[hidden] { display: none; }
+    .yt-float {
+      position: fixed;
+      z-index: 9000;
+      width: min(470px, 92vw);
+      max-height: 62vh;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 1px solid var(--yt-blue-dark);
+      border-radius: 3px;
+      box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
     }
-    .score-warning .warn-text {
-      line-height: 1.5;
+    .yt-float-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 5px 8px;
+      font: 600 12px var(--yt-font);
+      color: #fff;
+      background: linear-gradient(180deg, #7d92bd, #5d76a8);
+      cursor: move;
+      user-select: none;
     }
-    .score-warning strong {
-      color: var(--heading);
+    .yt-float-close {
+      padding: 0 4px;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.85;
+    }
+    .yt-float-close:hover { opacity: 1; }
+    .yt-float-body {
+      padding: 10px 12px;
+      overflow-y: auto;
+      font: 13px var(--yt-font);
+      color: #222;
+      line-height: 1.55;
+    }
+    .yt-float-body .context-sentence { display: block; color: #666; padding: 1px 0; }
+    .yt-float-body .match-line {
+      display: block;
+      margin: 3px 0;
+      padding: 2px 7px;
+      background: #fff6b0;
+      border-left: 3px solid var(--yt-red);
+    }
+    .yt-float-body .match-indicator { color: var(--yt-red); font-weight: 700; margin-right: 6px; }
+    .yt-float-body .match-text { color: #111; font-weight: 600; }
+
+    /* ============ Developer mode (inside the Help page) ============ */
+    #debugToggleBtn {
+      display: inline-block;
+      margin: 0 0 14px;
+      padding: 8px 16px;
+      font: 600 12px var(--yt-font);
+      color: #1a1a1a;
+      background: linear-gradient(180deg, #f6f8fb, #c3cad4);
+      border: 1px solid var(--yt-border);
+      border-radius: 3px;
+      box-shadow: none;
+      cursor: pointer;
+    }
+    #debugToggleBtn:hover { background: linear-gradient(180deg, #fff, #d5dae2); }
+    #debugToggleBtn.active { color: #fff; background: linear-gradient(180deg, #7d92bd, #5d76a8); }
+
+    /* ============ Tab pages ============ */
+    .yt-body[hidden], .yt-page[hidden], .yt-page-view[hidden], .yt-split-overlay[hidden] { display: none !important; }
+
+    .yt-page { min-height: 420px; padding: 26px 16px 44px; background: var(--yt-page); }
+    .yt-placeholder {
+      padding: 70px 20px;
+      text-align: center;
+      color: var(--yt-muted);
+      font: 14px var(--yt-font);
     }
 
-    .score-warning.cliff-divider {
-      margin: 16px 0 10px 0;
-      background: rgba(210, 153, 34, 0.10);
-      border: 1px dashed rgba(210, 153, 34, 0.5);
-      border-radius: 8px;
-      padding: 10px 14px;
+    .yt-creator {
+      max-width: 520px;
+      margin: 0 auto 26px;
+      padding: 26px 24px;
+      text-align: center;
+      background: #fff;
+      border: 1px solid var(--yt-border);
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+    }
+    .yt-pfp {
+      display: block;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 14px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 1px var(--yt-border), 0 3px 12px rgba(0, 0, 0, 0.22);
+    }
+    .yt-creator-name { font: 700 24px var(--yt-font); color: #111; }
+    .yt-creator-handle { display: inline-block; margin-top: 2px; font: 600 14px var(--yt-font); color: var(--yt-link); }
+    .yt-creator-bio { margin-top: 14px; font: 14px/1.6 var(--yt-font); color: #333; }
+
+    .yt-dev { max-width: 900px; margin: 0 auto; text-align: center; }
+
+    /* ============ Training-split result overlay ============ */
+    .yt-split-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 8000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(10, 12, 16, 0.5);
+    }
+    .yt-split-card {
+      width: min(420px, 88%);
+      padding: 22px;
+      text-align: center;
+      background: #fff;
+      border: 1px solid var(--yt-border);
+      border-radius: 4px;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.42);
+    }
+    .yt-split-img { display: block; width: min(260px, 72%); margin: 0 auto 14px; border-radius: 4px; }
+    .yt-split-title { font: 700 20px var(--yt-font); color: #111; }
+    .yt-split-msg { margin-top: 8px; font: 14px/1.55 var(--yt-font); color: #333; }
+
+    /* ============ Responsive ============ */
+    @media (max-width: 1000px) {
+      .yt-body { grid-template-columns: 1fr; }
+      .yt-sidebar { display: none; }
     }
 
-    /* Dim / ghost cards for low-relevance results */
-    .result-card.low-relevance {
-      opacity: 0.55;
-      border-style: dashed;
-    }
-    .result-card.low-relevance:hover {
-      opacity: 0.8;
+    @media (max-width: 900px) {
+      body { overflow: auto; height: auto; min-height: 100%; background: var(--yt-page); }
+      .room { display: none; }
+      .world { min-height: 0; padding: 0; perspective: none; display: block; }
+      .monitor { width: 100%; height: auto; transform: none; display: block; }
+      .monitor-frame {
+        padding: 7px;
+        border-radius: 0;
+        box-shadow: inset 0 0 0 1px #000;
+        background: linear-gradient(180deg, #2a2e34, #141619);
+      }
+      .monitor-frame::after { display: none; }
+      .monitor-screen { height: auto; border-radius: 0; box-shadow: none; overflow: visible; }
+      .monitor-side, .monitor-side-b, .monitor-neck, .monitor-base, .monitor-chin { display: none; }
+      .yt-split-overlay { position: fixed; }
+      .yt-page { min-height: 0; }
     }
 
-    /* Debug toggle active state */
-    .secondary-btn.active {
-      background: rgba(88, 166, 255, 0.12);
-      border-color: var(--accent);
-      color: var(--accent);
+    @media (max-width: 640px) {
+      .yt-top { flex-wrap: wrap; gap: 10px; }
+      .yt-logo-line { font-size: 24px; }
+      .yt-account { display: none; }
+      .yt-cat { display: none; }
+      .yt-tab { padding: 4px 10px; }
+      .yt-top-center { flex-basis: 100%; }
+      .yt-search input[type="text"] { font-size: 16px; min-height: 40px; }
+      #searchBtn { min-height: 40px; }
+
+      .yt-main { padding: 0 10px 24px; }
+      .yt-results-header { padding-top: 10px; }
+      .mode-selector { width: 100%; }
+      .mode-btn { flex: 1; min-height: 38px; }
+
+      /* Single-column rows */
+      .result-card {
+        grid-template-columns: 118px minmax(0, 1fr);
+        column-gap: 10px;
+        row-gap: 4px;
+      }
+      .yt-box { grid-column: 1; grid-row: 1 / span 2; }
+      .result-title-group { grid-column: 2; grid-row: 1; }
+      .transcript-container { grid-column: 2; grid-row: 2; -webkit-line-clamp: 4; }
+      .result-scores {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+        margin-top: 4px;
+      }
+      #loadMoreBtn { width: 100%; min-height: 44px; }
+    }
+
+    @media (max-width: 640px), (pointer: coarse) {
+      .yt-float {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: auto;
+        width: auto;
+        max-height: 72vh;
+        border: none;
+        border-radius: 10px 10px 0 0;
+        box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+      }
+      .yt-float-bar { cursor: default; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>
-      Keenan Finder
-      <span id="engineBadge" class="badge">Initializing...</span>
-      <span id="deviceBadge" class="badge">Detecting hardware...</span>
-    </h1>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-      <div style="color: var(--text-muted); font-size: 12px;">
-        100% Client-Side In-Browser Vector &amp; BM25 Search over INT8 Quantized Transcripts
-      </div>
-      <button id="debugToggleBtn" class="secondary-btn" style="font-size: 11px; padding: 4px 10px; border-radius: 4px;">⚙ Debug</button>
-    </div>
-  </header>
+  <!-- Low-poly room backdrop (intro scene continues into this) -->
+  <div class="room" aria-hidden="true"></div>
 
-  <div id="debugPanel" class="grid" style="display: none;">
-    <!-- Corpus Panel -->
-    <div class="card">
-      <div class="card-title">
-        <span>Corpus Status</span>
-        <span id="corpusStatusBadge" class="badge">Loading...</span>
-      </div>
-      <div class="status-row">
-        <span class="status-label">Items Loaded:</span>
-        <span id="numItemsVal" class="status-val">—</span>
-      </div>
-      <div class="status-row">
-        <span class="status-label">Embedding Dimensions:</span>
-        <span id="dimsVal" class="status-val">—</span>
-      </div>
-      <div class="status-row">
-        <span class="status-label">Load / Parse Latency:</span>
-        <span id="corpusLatencyVal" class="status-val">—</span>
-      </div>
-    </div>
+  <div class="world">
+    <div class="monitor">
+      <div class="monitor-side" aria-hidden="true"></div>
+      <div class="monitor-side-b" aria-hidden="true"></div>
 
-    <!-- Embedding Model Panel -->
-    <div class="card">
-      <div class="card-title">
-        <span>Browser Neural Engine</span>
-        <span id="modelStatusBadge" class="badge">Waiting...</span>
-      </div>
-      <div class="status-row">
-        <span class="status-label">Active Model:</span>
-        <span class="status-val">BAAI/bge-small-en-v1.5 (INT8 Q8)</span>
-      </div>
-      <div class="status-row">
-        <span class="status-label">Device Backend:</span>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <select id="deviceSelector">
-            <option value="wasm" selected>WASM / CPU (Fast & Exact, ~12ms)</option>
-            <option value="webgpu">WebGPU (FP32)</option>
-          </select>
-          <span id="activeDeviceVal" class="status-val">—</span>
+      <div class="monitor-frame">
+        <div class="monitor-screen">
+          <div class="app">
+            <!-- ===== Old-YouTube top bar ===== -->
+            <header class="yt-top">
+              <a class="yt-logo" href="./" aria-label="KeenBean home">
+                <span class="yt-logo-line"><span class="yt-logo-word">Keen</span><span class="yt-logo-badge">Bean</span></span>
+                <span class="yt-logo-tag">Broadcast Yourself</span>
+              </a>
+
+              <div class="yt-top-center">
+                <nav class="yt-tabs">
+                  <button class="yt-tab active" data-page="home">Home</button>
+                  <button class="yt-tab" data-page="videos">Videos</button>
+                  <button class="yt-tab" data-page="channels">Channels</button>
+                  <button class="yt-tab" data-page="community">Community</button>
+                  <button class="yt-tab" data-page="help">Help</button>
+                </nav>
+                <div class="yt-search">
+                  <input type="text" id="queryInput" placeholder="Search the archive (e.g. 'carb swishing', 'moment arm length in lateral raises')" autofocus />
+                  <span class="yt-cat" aria-hidden="true">Videos &#9662;</span>
+                  <button id="searchBtn" disabled>Search</button>
+                </div>
+              </div>
+
+              <div class="yt-account" aria-hidden="true">
+                <span>Sign Up</span><span class="sep">|</span><span>Log In</span><span class="sep">|</span><span>Help</span>
+              </div>
+
+              <div class="yt-status" aria-hidden="true">
+                <span id="engineBadge" class="badge">Initializing...</span>
+                <span id="deviceBadge" class="badge">Detecting hardware...</span>
+              </div>
+            </header>
+
+            <!-- ===== Body ===== -->
+            <div class="yt-body">
+              <aside class="yt-sidebar">
+                <div class="yt-side-head">Training splits</div>
+                <ul class="yt-cats">
+                  <li data-split="PPL" data-result="wrong">PPL</li>
+                  <li data-split="U/L/R" data-result="neither">U/L/R</li>
+                  <li data-split="FBOED" data-result="correct">FBOED</li>
+                  <li data-split="Arnold" data-result="wrong">Arnold</li>
+                  <li data-split="Bro Split" data-result="wrong">Bro Split</li>
+                  <li data-split="Left and Right" data-result="correct">Left and Right</li>
+                  <li data-split="Torso Limb" data-result="neither">Torso Limb</li>
+                  <li data-split="ANT/POST" data-result="neither">ANT/POST</li>
+                  <li data-split="Fullbody x?" data-result="correct">Fullbody x?</li>
+                </ul>
+                <div class="yt-side-head">Filter Results by</div>
+                <ul class="yt-filters">
+                  <li>Upload Date</li>
+                  <li>Most Viewed</li>
+                  <li>Top Rated</li>
+                  <li>Length</li>
+                </ul>
+              </aside>
+
+              <main class="yt-main">
+                <div class="yt-results-header">
+                  <span id="ytResultsCount" class="yt-results-count">Search the archive to begin</span>
+                  <div class="yt-results-right">
+                    <span class="yt-sort" aria-hidden="true">Sort by: <b>Relevance</b> &#9662;</span>
+                    <div class="mode-selector" role="group" aria-label="Search mode">
+                      <button class="mode-btn active" data-mode="hybrid">Hybrid (70/30)</button>
+                      <button class="mode-btn" data-mode="semantic">Semantic Only</button>
+                      <button class="mode-btn" data-mode="keyword">Keyword Only (BM25)</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Metrics (developer mode only) -->
+                <div id="metricsBar" class="metrics-bar" style="display: none;">
+                  <div class="metric-item"><span class="status-label">Embedding:</span><span id="metricEmbed" class="metric-value">0 ms</span></div>
+                  <div class="metric-item"><span class="status-label">Search (INT8 + BM25):</span><span id="metricSearch" class="metric-value">0 ms</span></div>
+                  <div class="metric-item"><span class="status-label">Total Time:</span><span id="metricTotal" class="metric-value">0 ms</span></div>
+                  <div class="metric-item"><span class="status-label">Query:</span><span id="metricQuery" style="color: #111;">—</span></div>
+                </div>
+
+                <!-- Results -->
+                <div id="resultsContainer" class="results-container">
+                  <div class="empty-state">
+                    Ready for search. Load status will indicate when the corpus and model are prepared.
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div id="paginationContainer" class="load-more-container" style="display: none;">
+                  <button id="loadMoreBtn">Load 5 More Results</button>
+                  <span id="resultsCountInfo" class="results-info"></span>
+                  <div id="scrollSentinel" style="height: 10px; width: 100%;"></div>
+                </div>
+              </main>
+            </div>
+
+            <!-- ===== Tab pages ===== -->
+            <div class="yt-page" id="ytPage" hidden>
+              <section class="yt-page-view" data-page="help" hidden>
+                <div class="yt-creator">
+                  <img class="yt-pfp" src="/assets/satella_pfp.jpeg" alt="Satella" />
+                  <h2 class="yt-creator-name">Satella</h2>
+                  <span class="yt-creator-handle">@streliziaa</span>
+                  <p class="yt-creator-bio">if you have any problems/idea or feedback please 🥺🥺 dm me on discord! @streliziaa</p>
+                </div>
+
+                <div class="yt-dev">
+                  <button id="debugToggleBtn" title="Toggle developer panel">&#9881; Debug</button>
+                  <div id="debugPanel" class="grid" style="display: none;">
+                    <div class="card">
+                      <div class="card-title">
+                        <span>Corpus Status</span>
+                        <span id="corpusStatusBadge" class="badge">Loading...</span>
+                      </div>
+                      <div class="status-row">
+                        <span class="status-label">Items Loaded:</span>
+                        <span id="numItemsVal" class="status-val">—</span>
+                      </div>
+                      <div class="status-row">
+                        <span class="status-label">Embedding Dimensions:</span>
+                        <span id="dimsVal" class="status-val">—</span>
+                      </div>
+                      <div class="status-row">
+                        <span class="status-label">Load / Parse Latency:</span>
+                        <span id="corpusLatencyVal" class="status-val">—</span>
+                      </div>
+                    </div>
+
+                    <div class="card">
+                      <div class="card-title">
+                        <span>Browser Neural Engine</span>
+                        <span id="modelStatusBadge" class="badge">Waiting...</span>
+                      </div>
+                      <div class="status-row">
+                        <span class="status-label">Active Model:</span>
+                        <span class="status-val">BAAI/bge-small-en-v1.5 (INT8 Q8)</span>
+                      </div>
+                      <div class="status-row">
+                        <span class="status-label">Device Backend:</span>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                          <select id="deviceSelector">
+                            <option value="wasm" selected>WASM / CPU (Fast &amp; Exact, ~12ms)</option>
+                            <option value="webgpu">WebGPU (FP32)</option>
+                          </select>
+                          <span id="activeDeviceVal" class="status-val">—</span>
+                        </div>
+                      </div>
+                      <div class="status-row">
+                        <span class="status-label">Model Init Latency:</span>
+                        <span id="modelInitLatencyVal" class="status-val">—</span>
+                      </div>
+                      <div id="progressContainer" class="progress-bar-container">
+                        <div id="progressBar" class="progress-bar"></div>
+                      </div>
+                      <div id="modelStatusText" style="margin-top: 6px; font-size: 11px; color: var(--yt-muted);">
+                        Waiting for model initialization...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="yt-page-view" data-page="videos" hidden>
+                <div class="yt-placeholder">Nothing here yet.</div>
+              </section>
+              <section class="yt-page-view" data-page="channels" hidden>
+                <div class="yt-placeholder">Nothing here yet.</div>
+              </section>
+              <section class="yt-page-view" data-page="community" hidden>
+                <div class="yt-placeholder">Nothing here yet.</div>
+              </section>
+            </div>
+
+            <!-- ===== Training-split result overlay ===== -->
+            <div class="yt-split-overlay" id="ytSplitOverlay" hidden>
+              <div class="yt-split-card">
+                <img class="yt-split-img" id="ytSplitImg" alt="" />
+                <div class="yt-split-title" id="ytSplitTitle"></div>
+                <div class="yt-split-msg" id="ytSplitMsg"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="monitor-chin" aria-hidden="true">
+          <span>KEENBEAN&nbsp;CRT&nbsp;&mdash;&nbsp;MODEL&nbsp;KB-2007</span>
+          <span class="monitor-led"><i></i>PWR</span>
         </div>
       </div>
-      <div class="status-row">
-        <span class="status-label">Model Init Latency:</span>
-        <span id="modelInitLatencyVal" class="status-val">—</span>
-      </div>
-      <div id="progressContainer" class="progress-bar-container">
-        <div id="progressBar" class="progress-bar"></div>
-      </div>
-      <div id="modelStatusText" style="margin-top: 6px; font-size: 11px; color: var(--text-muted);">
-        Waiting for model initialization...
-      </div>
-    </div>
-  </div>
 
-  <!-- Search Controls -->
-  <div class="controls-panel">
-    <div class="search-row">
-      <input type="text" id="queryInput" placeholder="Enter search query (e.g. 'how to manage big eating crashouts', 'vegetable Glycerine', 'lapel guard')..." autofocus />
-      <button id="searchBtn" disabled>Search</button>
+      <div class="monitor-neck" aria-hidden="true"></div>
+      <div class="monitor-base" aria-hidden="true"></div>
     </div>
-
-    <div class="options-row">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <span>Mode:</span>
-        <div class="mode-selector">
-          <button class="mode-btn active" data-mode="hybrid">Hybrid (70/30)</button>
-          <button class="mode-btn" data-mode="semantic">Semantic Only</button>
-          <button class="mode-btn" data-mode="keyword">Keyword Only (BM25)</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Metrics Bar -->
-  <div id="metricsBar" class="metrics-bar" style="display: none;">
-    <div class="metric-item">
-      <span class="status-label">Embedding:</span>
-      <span id="metricEmbed" class="metric-value">0 ms</span>
-    </div>
-    <div class="metric-item">
-      <span class="status-label">Search (INT8 + BM25):</span>
-      <span id="metricSearch" class="metric-value">0 ms</span>
-    </div>
-    <div class="metric-item">
-      <span class="status-label">Total Time:</span>
-      <span id="metricTotal" class="metric-value">0 ms</span>
-    </div>
-    <div class="metric-item">
-      <span class="status-label">Query:</span>
-      <span id="metricQuery" style="color: var(--heading);">—</span>
-    </div>
-  </div>
-
-  <!-- Results List -->
-  <div id="resultsContainer" class="results-container">
-    <div class="empty-state">
-      Ready for search. Load status above will indicate when corpus and model are prepared.
-    </div>
-  </div>
-
-  <!-- Pagination / Load More -->
-  <div id="paginationContainer" class="load-more-container" style="display: none;">
-    <button id="loadMoreBtn" class="load-more-btn">Load 5 More Results</button>
-    <span id="resultsCountInfo" class="results-info"></span>
-    <div id="scrollSentinel" style="height: 10px; width: 100%;"></div>
   </div>
 
   <script type="module" src="/src/main.ts"></script>
+  <script type="module" src="/src/ui/yt-chrome.ts"></script>
+
+  <!-- Phase 3 intro sequence. To remove the feature entirely: delete the /intro/ folder
+       and the single line below. Set window.KEENBEAN_INTRO = false to disable it without
+       deleting anything. The loader only requests /intro/intro.js on capable desktop
+       viewports, so mobile/touch never load anything from /intro/. -->
+  <script>(function(){try{window.KEENBEAN_INTRO=window.KEENBEAN_INTRO!==false;if(window.KEENBEAN_INTRO&&matchMedia('(min-width:900px)').matches&&matchMedia('(pointer:fine)').matches){var s=document.createElement('script');s.defer=true;s.src='/intro/intro.js';document.head.appendChild(s);}}catch(e){}})();</script>
 </body>
 </html>
