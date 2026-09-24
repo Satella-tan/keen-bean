@@ -858,33 +858,41 @@
     .yt-float-body .match-indicator { color: var(--yt-red); font-weight: 700; margin-right: 6px; }
     .yt-float-body .match-text { color: #111; font-weight: 600; }
 
-    /* ============ Developer mode (inside the Help page) ============ */
-    #debugToggleBtn {
-      display: inline-block;
-      margin: 0 0 14px;
-      padding: 8px 16px;
-      font: 600 12px var(--yt-font);
-      color: #1a1a1a;
-      background: linear-gradient(180deg, #f6f8fb, #c3cad4);
-      border: 1px solid var(--yt-border);
-      border-radius: 3px;
-      box-shadow: none;
-      cursor: pointer;
+    /* ============ Developer mode (hidden: PWR light or Ctrl+Shift+D) ============ */
+    .dev-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
     }
-    #debugToggleBtn:hover { background: linear-gradient(180deg, #fff, #d5dae2); }
-    #debugToggleBtn.active { color: #fff; background: linear-gradient(180deg, #7d92bd, #5d76a8); }
+    #debugPanel {
+      position: fixed;
+      left: 14px;
+      bottom: 14px;
+      z-index: 80;
+      width: min(720px, 66vw);
+      margin: 0;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+    }
+    .monitor-led { cursor: pointer; }
+    .monitor-led:focus-visible { outline: 1px solid #35b6ff; outline-offset: 3px; border-radius: 3px; }
 
     /* ============ Views inside the results area (sidebar/navbar stay) ============ */
     .yt-view[hidden] { display: none !important; }
 
-    /* Help view — left aligned */
+    /* Help view — left aligned, kept compact so it never needs to scroll */
     .yt-creator {
       display: flex;
       align-items: flex-start;
-      gap: 18px;
+      gap: 16px;
       max-width: 720px;
-      margin: 4px 0 24px;
-      padding: 18px;
+      margin: 0 0 16px;
+      padding: 14px 16px;
       text-align: left;
       background: #fff;
       border: 1px solid var(--yt-border);
@@ -893,19 +901,73 @@
     }
     .yt-pfp {
       flex: 0 0 auto;
-      width: 112px;
-      height: 112px;
+      width: 92px;
+      height: 92px;
       object-fit: cover;
       border-radius: 50%;
       border: 3px solid #fff;
       box-shadow: 0 0 0 1px var(--yt-border), 0 3px 12px rgba(0, 0, 0, 0.22);
     }
     .yt-creator-meta { min-width: 0; }
-    .yt-creator-name { font: 700 22px var(--yt-font); color: #111; }
-    .yt-creator-role { display: inline-block; margin-top: 2px; font: 600 13px var(--yt-font); color: var(--yt-blue-dark); }
-    .yt-creator-bio { margin-top: 12px; font: 14px/1.6 var(--yt-font); color: #333; }
+    .yt-creator-name { font: 700 21px var(--yt-font); color: #111; }
+    .yt-creator-role { display: inline-block; margin-top: 1px; font: 600 12px var(--yt-font); color: var(--yt-blue-dark); }
+    .yt-creator-bio { margin-top: 8px; font: 13px/1.55 var(--yt-font); color: #333; }
 
-    .yt-dev { text-align: left; }
+    /* ---------- Feedback form ---------- */
+    .yt-feedback {
+      max-width: 720px;
+      padding: 14px 16px 16px;
+      background: #fff;
+      border: 1px solid var(--yt-border);
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+    }
+    .yt-feedback-title {
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--yt-border-soft);
+      font: 600 14px var(--yt-font);
+      color: #111;
+    }
+    .yt-field { display: block; margin-bottom: 10px; }
+    .yt-field-label { display: block; margin-bottom: 4px; font: 600 12px var(--yt-font); color: #333; }
+    .yt-field-label em { color: var(--yt-muted); font-style: normal; font-weight: 400; }
+    .yt-field input,
+    .yt-field textarea {
+      width: 100%;
+      padding: 7px 9px;
+      font: 13px var(--yt-font);
+      color: #111;
+      background: #fff;
+      border: 1px solid var(--yt-border);
+      border-radius: 3px;
+      outline: none;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+      resize: vertical;
+    }
+    .yt-field input:focus,
+    .yt-field textarea:focus {
+      border-color: var(--yt-blue-dark);
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(74, 95, 143, 0.35);
+    }
+    .yt-feedback-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .yt-counter { font: 11px var(--mono); color: var(--yt-muted); }
+    .yt-counter.over { color: var(--yt-red); font-weight: 700; }
+    #fbSubmit {
+      padding: 8px 20px;
+      font: 600 12px var(--yt-font);
+      color: #1a1a1a;
+      background: linear-gradient(180deg, #f6f8fb, #c3cad4);
+      border: 1px solid var(--yt-border);
+      border-radius: 3px;
+      box-shadow: none;
+      cursor: pointer;
+    }
+    #fbSubmit:hover:not(:disabled) { background: linear-gradient(180deg, #fff, #d5dae2); }
+    #fbSubmit:disabled { color: #9aa1ad; background: #dfe3e8; cursor: not-allowed; }
+    .yt-feedback-status { margin-top: 8px; min-height: 16px; font: 12px/1.5 var(--yt-font); }
+    .yt-feedback-status.ok { color: #14532d; }
+    .yt-feedback-status.err { color: var(--yt-red); }
 
     /* Training-split view — replaces the results area */
     .yt-split-card {
@@ -1130,71 +1192,33 @@
                   </div>
                 </div>
 
-                <!-- Help view: creator + developer mode (opens from the Help link) -->
+                <!-- Help view: creator + feedback form (opens from the Help link) -->
                 <div class="yt-view" id="viewHelp" hidden>
                   <div class="yt-creator">
                     <img class="yt-pfp" src="/assets/satella_pfp.jpeg" alt="Satella — creator of KeenBean" />
                     <div class="yt-creator-meta">
                       <h2 class="yt-creator-name">Satella</h2>
                       <span class="yt-creator-role">Creator of KeenBean.site</span>
-                      <p class="yt-creator-bio">if you have any problems, ideas or feedback please dm me on discord! @streliziaa</p>
+                      <p class="yt-creator-bio">if you have any problems, ideas or feedback please dm me on discord! @streliziaa — or better yet, use the form down below. i HIGHLY appreciated and i will kiss u if you use it.</p>
                     </div>
                   </div>
 
-                  <div class="yt-dev">
-                    <button id="debugToggleBtn" title="Toggle developer panel">&#9881; Debug</button>
-                    <div id="debugPanel" class="grid" style="display: none;">
-                      <div class="card">
-                        <div class="card-title">
-                          <span>Corpus Status</span>
-                          <span id="corpusStatusBadge" class="badge">Loading...</span>
-                        </div>
-                        <div class="status-row">
-                          <span class="status-label">Items Loaded:</span>
-                          <span id="numItemsVal" class="status-val">—</span>
-                        </div>
-                        <div class="status-row">
-                          <span class="status-label">Embedding Dimensions:</span>
-                          <span id="dimsVal" class="status-val">—</span>
-                        </div>
-                        <div class="status-row">
-                          <span class="status-label">Load / Parse Latency:</span>
-                          <span id="corpusLatencyVal" class="status-val">—</span>
-                        </div>
-                      </div>
-
-                      <div class="card">
-                        <div class="card-title">
-                          <span>Browser Neural Engine</span>
-                          <span id="modelStatusBadge" class="badge">Waiting...</span>
-                        </div>
-                        <div class="status-row">
-                          <span class="status-label">Active Model:</span>
-                          <span class="status-val">BAAI/bge-small-en-v1.5 (INT8 Q8)</span>
-                        </div>
-                        <div class="status-row">
-                          <span class="status-label">Device Backend:</span>
-                          <div style="display: flex; gap: 8px; align-items: center;">
-                            <select id="deviceSelector">
-                              <option value="wasm" selected>WASM / CPU (Fast &amp; Exact, ~12ms)</option>
-                              <option value="webgpu">WebGPU (FP32)</option>
-                            </select>
-                            <span id="activeDeviceVal" class="status-val">—</span>
-                          </div>
-                        </div>
-                        <div class="status-row">
-                          <span class="status-label">Model Init Latency:</span>
-                          <span id="modelInitLatencyVal" class="status-val">—</span>
-                        </div>
-                        <div id="progressContainer" class="progress-bar-container">
-                          <div id="progressBar" class="progress-bar"></div>
-                        </div>
-                        <div id="modelStatusText" style="margin-top: 6px; font-size: 11px; color: var(--yt-muted);">
-                          Waiting for model initialization...
-                        </div>
-                      </div>
+                  <form class="yt-feedback" id="fbForm" novalidate>
+                    <div class="yt-feedback-title">Send feedback</div>
+                    <label class="yt-field">
+                      <span class="yt-field-label">Name <em>optional</em></span>
+                      <input type="text" id="fbName" maxlength="80" autocomplete="nickname" placeholder="Anonymous" />
+                    </label>
+                    <label class="yt-field">
+                      <span class="yt-field-label">Message</span>
+                      <textarea id="fbMessage" rows="3" maxlength="1000" placeholder="What's working, what's broken, what you'd like to see..."></textarea>
+                    </label>
+                    <div class="yt-feedback-row">
+                      <span class="yt-counter" id="fbCounter">0 / 1000</span>
+                      <button type="submit" id="fbSubmit">Send feedback</button>
                     </div>
-                  </div>
+                    <div class="yt-feedback-status" id="fbStatus" role="status" aria-live="polite"></div>
+                  </form>
                 </div>
 
                 <!-- Training-split view: replaces the results area, sidebar/navbar stay -->
@@ -1213,14 +1237,68 @@
           </div>
         </div>
 
-        <div class="monitor-chin" aria-hidden="true">
+        <div class="monitor-chin">
           <span>KEENBEAN&nbsp;monitor&nbsp;1&nbsp;-&nbsp;BETA</span>
-          <span class="monitor-led"><i></i>PWR</span>
+          <span class="monitor-led" id="ytDevTrigger" role="button" tabindex="0" title="Developer mode" aria-label="Toggle developer mode"><i></i>PWR</span>
         </div>
       </div>
 
       <div class="monitor-neck" aria-hidden="true"></div>
       <div class="monitor-base" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- Developer mode: hidden trigger (monitor PWR light or Ctrl+Shift+D) + floating panel -->
+  <button id="debugToggleBtn" class="dev-hidden" title="Toggle developer panel" aria-label="Toggle developer mode">&#9881; Debug</button>
+  <div id="debugPanel" class="grid" style="display: none;">
+    <div class="card">
+      <div class="card-title">
+        <span>Corpus Status</span>
+        <span id="corpusStatusBadge" class="badge">Loading...</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Items Loaded:</span>
+        <span id="numItemsVal" class="status-val">—</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Embedding Dimensions:</span>
+        <span id="dimsVal" class="status-val">—</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Load / Parse Latency:</span>
+        <span id="corpusLatencyVal" class="status-val">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Browser Neural Engine</span>
+        <span id="modelStatusBadge" class="badge">Waiting...</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Active Model:</span>
+        <span class="status-val">BAAI/bge-small-en-v1.5 (INT8 Q8)</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Device Backend:</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <select id="deviceSelector">
+            <option value="wasm" selected>WASM / CPU (Fast &amp; Exact, ~12ms)</option>
+            <option value="webgpu">WebGPU (FP32)</option>
+          </select>
+          <span id="activeDeviceVal" class="status-val">—</span>
+        </div>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Model Init Latency:</span>
+        <span id="modelInitLatencyVal" class="status-val">—</span>
+      </div>
+      <div id="progressContainer" class="progress-bar-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="modelStatusText" style="margin-top: 6px; font-size: 11px; color: var(--yt-muted);">
+        Waiting for model initialization...
+      </div>
     </div>
   </div>
 

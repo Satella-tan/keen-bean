@@ -18,6 +18,13 @@ const ytResultsCount = document.getElementById('ytResultsCount');
 const hoverCapable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 const sheetMode = window.matchMedia('(max-width: 640px), (pointer: coarse)').matches;
 
+/* ---------- Analytics (GA4) ---------- */
+type GtagWindow = Window & { gtag?: (...args: unknown[]) => void };
+function track(event: string, params?: Record<string, unknown>): void {
+  const w = window as GtagWindow;
+  if (typeof w.gtag === 'function') w.gtag('event', event, params ?? {});
+}
+
 /* ---------- Result header line ---------- */
 function syncResultsHeader(): void {
   if (!ytResultsCount) return;
@@ -31,7 +38,15 @@ function syncResultsHeader(): void {
 }
 
 if (metricQuery) {
-  new MutationObserver(syncResultsHeader).observe(metricQuery, {
+  new MutationObserver(() => {
+    syncResultsHeader();
+    const raw = metricQuery.textContent ?? '';
+    const m = raw.match(/"([\s\S]*)"\s*\((\d+)\s*results?\)/);
+    if (m) {
+      const activeMode = document.querySelector<HTMLElement>('.mode-btn.active')?.getAttribute('data-mode') ?? '';
+      track('search', { search_term: m[1], results: Number(m[2]), mode: activeMode });
+    }
+  }).observe(metricQuery, {
     childList: true,
     characterData: true,
     subtree: true,
@@ -205,27 +220,37 @@ floatBar.addEventListener('pointerup', () => {
   drag = null;
 });
 
-/* ---------- Developer mode (lives in the Help page) ---------- */
+/* ---------- Developer mode: hidden trigger (monitor PWR light / Ctrl+Shift+D) ---------- */
 const app = document.querySelector<HTMLElement>('.app');
 const debugBtn = document.getElementById('debugToggleBtn');
 
 if (app && debugBtn) {
   const syncDevMode = (): void => {
-    const on = debugBtn.classList.contains('active');
-    app.classList.toggle('dev-mode', on);
-    // main.ts still writes "⚙ Debug" / "⚙ Hide Debug"; relabel it without editing main.ts.
-    const label = debugBtn.textContent ?? '';
-    const next = label.includes('Hide') ? 'Hide developer mode' : 'Developer mode';
-    if (label !== next) debugBtn.textContent = next;
+    app.classList.toggle('dev-mode', debugBtn.classList.contains('active'));
   };
   new MutationObserver(syncDevMode).observe(debugBtn, {
     attributes: true,
     attributeFilter: ['class'],
-    childList: true,
-    characterData: true,
-    subtree: true,
   });
   syncDevMode();
+
+  const toggleDev = (): void => debugBtn.click();
+  const devTrigger = document.getElementById('ytDevTrigger');
+  if (devTrigger) {
+    devTrigger.addEventListener('click', toggleDev);
+    devTrigger.addEventListener('keydown', (event) => {
+      if ((event as KeyboardEvent).key === 'Enter' || (event as KeyboardEvent).key === ' ') {
+        event.preventDefault();
+        toggleDev();
+      }
+    });
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.shiftKey && (event.key === 'D' || event.key === 'd')) {
+      event.preventDefault();
+      toggleDev();
+    }
+  });
 }
 
 /* ---------- Views inside the results area (sidebar + navbar always stay) ---------- */
@@ -268,22 +293,41 @@ function showView(name: 'home' | 'help' | 'split'): void {
 const homeTab = document.querySelector<HTMLElement>('.yt-tab[data-page="home"]');
 if (homeTab) homeTab.addEventListener('click', () => showView('home'));
 
-/* Logo -> home, focus the search box, never reload. */
+/* Mode buttons: track which search mode people pick. */
+document.querySelectorAll<HTMLElement>('.mode-btn').forEach((btn) => {
+  btn.addEventListener('click', () => track('mode_change', { mode: btn.getAttribute('data-mode') ?? '' }));
+});
+
+/* Logo -> a fresh home: clears query + results (no reload), focuses the box. */
 const logo = document.getElementById('ytLogo');
 if (logo) {
   logo.addEventListener('click', () => {
-    showView('home');
     const input = document.getElementById('queryInput') as HTMLInputElement | null;
-    if (input) {
-      input.focus();
-      input.select();
+    if (input) input.value = '';
+    if (resultsContainer) {
+      resultsContainer.innerHTML = '<div class="empty-state">Ready to search.</div>';
     }
+    const pagination = document.getElementById('paginationContainer');
+    if (pagination) pagination.style.display = 'none';
+    const metrics = document.getElementById('metricsBar');
+    if (metrics) metrics.style.display = 'none';
+    if (ytResultsCount) ytResultsCount.textContent = 'Search the archive to begin';
+    const screen = document.querySelector<HTMLElement>('.monitor-screen');
+    if (screen) screen.scrollTop = 0;
+    showView('home');
+    if (input) input.focus();
+    track('home_reset');
   });
 }
 
-/* Help (blue text beside Log In) -> creator + developer mode. */
+/* Help (blue text beside Log In) -> creator + feedback form. */
 const helpLink = document.getElementById('ytHelpLink');
-if (helpLink) helpLink.addEventListener('click', () => showView('help'));
+if (helpLink) {
+  helpLink.addEventListener('click', () => {
+    showView('help');
+    track('help_open');
+  });
+}
 
 /* Running a search should always bring the results view forward. */
 const searchBtnEl = document.getElementById('searchBtn');
@@ -364,7 +408,7 @@ function pickRandom<T>(items: T[]): T | undefined {
 const splitImg = document.getElementById('ytSplitImg') as HTMLImageElement | null;
 const splitMsg = document.getElementById('ytSplitMsg');
 
-function showSplit(result: string): void {
+function showSplit(result: string, split = ''): void {
   const kind = SPLIT_IMAGES[result] ? result : 'neither';
   const img = pickRandom(SPLIT_IMAGES[kind]);
   const msg = pickRandom(SPLIT_MESSAGES[kind]) ?? '';
@@ -378,12 +422,102 @@ function showSplit(result: string): void {
     }
   }
   if (splitMsg) splitMsg.textContent = msg;
+  track('split_open', { split, result: kind });
   showView('split');
   splitTimer = window.setTimeout(() => showView('home'), 2000);
 }
 
 document.querySelectorAll<HTMLElement>('.yt-cats li[data-split]').forEach((item) => {
-  item.addEventListener('click', () => showSplit(item.dataset.result ?? 'neither'));
+  item.addEventListener('click', () => showSplit(item.dataset.result ?? 'neither', item.dataset.split ?? ''));
 });
+
+/* Outbound result clicks (the useful "what do they do with results" signal). */
+if (resultsContainer) {
+  resultsContainer.addEventListener('click', (event) => {
+    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('.yt-box');
+    if (!link) return;
+    const card = link.closest<HTMLElement>('.result-card');
+    const title = card?.querySelector<HTMLElement>('.result-video-title')?.textContent?.trim() ?? '';
+    track('result_open', { video: title });
+  });
+}
+
+/* ---------- Feedback form ---------- */
+const FB_ENDPOINT = 'https://keenan-feedback-ops.keenan-feedback-ops-low-ranking-officer.workers.dev/feedback';
+const fbForm = document.getElementById('fbForm') as HTMLFormElement | null;
+const fbName = document.getElementById('fbName') as HTMLInputElement | null;
+const fbMessage = document.getElementById('fbMessage') as HTMLTextAreaElement | null;
+const fbCounter = document.getElementById('fbCounter');
+const fbSubmit = document.getElementById('fbSubmit') as HTMLButtonElement | null;
+const fbStatus = document.getElementById('fbStatus');
+
+function setFeedbackStatus(text: string, kind: '' | 'ok' | 'err'): void {
+  if (!fbStatus) return;
+  fbStatus.textContent = text;
+  fbStatus.className = `yt-feedback-status${kind ? ` ${kind}` : ''}`;
+}
+
+if (fbMessage && fbCounter) {
+  const updateCounter = (): void => {
+    const len = fbMessage.value.length;
+    fbCounter.textContent = `${len} / 1000`;
+    fbCounter.classList.toggle('over', len >= 1000);
+  };
+  fbMessage.addEventListener('input', updateCounter);
+  updateCounter();
+}
+
+if (fbForm) {
+  fbForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const message = (fbMessage?.value ?? '').trim();
+    if (!message) {
+      setFeedbackStatus('Please write a message first.', 'err');
+      fbMessage?.focus();
+      return;
+    }
+    if (message.length > 1000) {
+      setFeedbackStatus('Message is too long (max 1000 characters).', 'err');
+      return;
+    }
+
+    const senderName = (fbName?.value ?? '').trim();
+    if (fbSubmit) {
+      fbSubmit.disabled = true;
+      fbSubmit.textContent = 'Sending...';
+    }
+    setFeedbackStatus('', '');
+
+    try {
+      const res = await fetch(FB_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderName, message, pageUrl: location.href }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        if (res.status === 429) throw new Error('Too many messages right now — please try again in a minute.');
+        throw new Error(data.error || `Something went wrong (${res.status}).`);
+      }
+      setFeedbackStatus('Thanks, feedback sent!', 'ok');
+      fbForm.reset();
+      if (fbCounter) {
+        fbCounter.textContent = '0 / 1000';
+        fbCounter.classList.remove('over');
+      }
+      track('feedback_submit');
+    } catch (err) {
+      setFeedbackStatus(
+        err instanceof Error ? err.message : 'Could not send feedback. Please try again.',
+        'err',
+      );
+    } finally {
+      if (fbSubmit) {
+        fbSubmit.disabled = false;
+        fbSubmit.textContent = 'Send feedback';
+      }
+    }
+  });
+}
 
 showView('home');
