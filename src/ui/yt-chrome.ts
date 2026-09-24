@@ -44,7 +44,9 @@ if (metricQuery) {
     const m = raw.match(/"([\s\S]*)"\s*\((\d+)\s*results?\)/);
     if (m) {
       const activeMode = document.querySelector<HTMLElement>('.mode-btn.active')?.getAttribute('data-mode') ?? '';
-      track('search', { search_term: m[1], results: Number(m[2]), mode: activeMode });
+      // view_search_results is GA4's recommended event: it feeds the built-in
+      // "Search term" dimension, so no custom dimension is needed.
+      track('view_search_results', { search_term: m[1], results: Number(m[2]), mode: activeMode });
     }
   }).observe(metricQuery, {
     childList: true,
