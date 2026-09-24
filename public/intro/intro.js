@@ -15,6 +15,7 @@
   'use strict';
 
   var DESK_IMAGE = '/intro/assets/desk.jpg';
+  var SFX = '/intro/assets/startup-sfx.mp3';
   var SKIP_AFTER_MS = 500;
   var TOTAL_MS = 1900;      // hard stop — never hold the site hostage
   var REDUCED_MS = 600;
@@ -78,12 +79,45 @@
   var canSkip = false;
   var finishTimer = 0;
   var skipTimer = 0;
+  var sfx = null;
+  var sfxFade = 0;
+
+  // Boot sound. Browsers may block audio until the user has interacted with the
+  // site at least once; if so, the intro simply plays silently (never throws).
+  function playSfx() {
+    try {
+      sfx = new Audio(SFX);
+      sfx.volume = 0.55;
+      sfx.preload = 'auto';
+      var p = sfx.play();
+      if (p && typeof p.catch === 'function') p.catch(function () {});
+    } catch (e) {
+      sfx = null;
+    }
+  }
+
+  function fadeOutSfx() {
+    if (!sfx || sfx.paused) return;
+    var start = sfx.volume;
+    var steps = 8;
+    var i = 0;
+    sfxFade = setInterval(function () {
+      i++;
+      sfx.volume = Math.max(0, start * (1 - i / steps));
+      if (i >= steps) {
+        clearInterval(sfxFade);
+        sfxFade = 0;
+        try { sfx.pause(); } catch (e) { /* ignore */ }
+      }
+    }, 25);
+  }
 
   function finish() {
     if (done) return;
     done = true;
     clearTimeout(finishTimer);
     clearTimeout(skipTimer);
+    fadeOutSfx();
     document.removeEventListener('keydown', onSkip, true);
     root.removeEventListener('pointerdown', onSkip, true);
     root.style.animation = 'kb-intro-out 200ms ease forwards';
@@ -100,6 +134,7 @@
 
   document.documentElement.classList.add('kb-intro-lock');
   document.body.appendChild(root);
+  playSfx();
 
   document.addEventListener('keydown', onSkip, true);
   root.addEventListener('pointerdown', onSkip, true);
