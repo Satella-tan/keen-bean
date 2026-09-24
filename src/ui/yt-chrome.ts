@@ -265,9 +265,15 @@ const views: Record<string, HTMLElement | null> = {
 let splitTimer = 0;
 let isFirstHome = true;
 
-/* The intro blurb + gif shows only on the first load; later arrivals at Home
-   get the plain "Ready to search." state. main.ts replaces the whole container
-   on search, so this only touches the untouched intro element. */
+/* The welcome blurb (tagline + gif) shows once per browser session; later
+   arrivals at Home get the plain "Ready to search." state. main.ts replaces the
+   whole container on search, so this only touches the untouched intro element. */
+const WELCOME_KEY = 'kb_welcome_seen';
+
+function hasSeenWelcome(): boolean {
+  try { return sessionStorage.getItem(WELCOME_KEY) === '1'; } catch (e) { return false; }
+}
+
 function showStandardEmptyState(): void {
   if (!resultsContainer) return;
   const intro = resultsContainer.querySelector<HTMLElement>('.empty-state[data-intro="1"]');
@@ -275,6 +281,13 @@ function showStandardEmptyState(): void {
     intro.removeAttribute('data-intro');
     intro.textContent = 'Ready to search.';
   }
+}
+
+if (hasSeenWelcome()) {
+  showStandardEmptyState();
+  isFirstHome = false;
+} else {
+  try { sessionStorage.setItem(WELCOME_KEY, '1'); } catch (e) { /* private mode */ }
 }
 
 function showView(name: 'home' | 'help' | 'split'): void {
